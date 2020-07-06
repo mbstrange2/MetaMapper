@@ -62,17 +62,22 @@ class Dag(AbstractDag):
         if not all(isinstance(source, Source) for source in sources):
             raise ValueError("Each source needs to be instance of Source")
         if not all(isinstance(sink, Sink) for sink in sinks):
-            raise ValueError("Each source needs to be instance of Source")
+            raise ValueError("Each sink needs to be instance of Sink")
         if len(sources) < 1 or not isinstance(sources[0], Input):
             raise ValueError("First Source needs to be an Input")
         if not isinstance(sinks[0], Output):
             raise ValueError("First Sink needs to be an Output")
+        for source, sink in list(zip(sources, sinks))[1:]:
+            assert type(source).sink_t is type(sink)
+            assert type(sink).source_t is type(source)
+        for source, sink in zip(sources, sinks):
+            source.set_sink(sink)
+            sink.set_source(source)
+
 
         self.sources = sources
         self.sinks = sinks
         super().__init__(*sinks)
-        #self.outputs = sinks[0]
-        #self.input = srcs[0]
 
     @property
     def input(self):
@@ -136,32 +141,50 @@ class Nodes:
                 raise ValueError("State nodes need to come in pairs")
         elif isinstance(dag_nodes, tuple):
             assert len(dag_nodes) == 2
-            if not isinstance(dag_nodes[0], Source):
+            if not issubclass(dag_nodes[0], Source):
                 raise ValueError("Needs to be source")
-            if not isinstance(dag_nodes[1], Sink):
+            if not issubclass(dag_nodes[1], Sink):
                 raise ValueError("Needs to be source")
         self.dag_nodes[node_name] = dag_nodes
         self.peak_nodes[node_name] = peak_node
         self.coreir_modules[node_name] = cmod
         self._node_names.add(node_name)
 
-    # TODO Thoughts
     #If this is state, then it creates two nodes a source and sink
-    def create_dag_node(self, node_name, num_children, stateful: bool, attrs: tp.List = (), parents=()):
-        if stateful:
-            raise NotImplementedError("TODO")
-
+    def create_dag_node(self, node_name, num_children, stateful: bool, attrs: tp.List = (), parents=(), modparams=()):
         if "iname" in attrs:
             raise ValueError("Cannot have 'iname' in attrs")
 
         attrs += ("iname",)
-        node = type(node_name, parents + (DagNode,), dict(
-            num_children=num_children,
-            nodes=self,
-            node_name=node_name,
-            attributes=attrs,
-        ))
-        return node
+        parents += (DagNode,)
+        if stateful:
+            sink_node = type(node_name + "_sink", parents + (Sink,), dict(
+                num_children=num_children,
+                nodes=self,
+                node_name=node_name,
+                attributes=attrs,
+                modparams=modparams
+            ))
+            #Create the 'source node'
+            src_node = type(node_name + "_source", parents + (Source,), dict(
+                num_children=0,
+                nodes=self,
+                node_name=node_name,
+                attributes=attrs,
+                modparams=()
+            ))
+            sink_node.source_t = src_node
+            src_node.sink_t = sink_node
+            return src_node, sink_node
+        else:
+            node = type(node_name, parents, dict(
+                num_children=num_children,
+                nodes=self,
+                node_name=node_name,
+                attributes=attrs,
+                modparams=modparams
+            ))
+            return node
 
 #Select gotes 1 ->1
 #Input goes 0 -> 1
@@ -172,8 +195,14 @@ Select = Common.create_dag_node("Select", 1, False, ("field",))
 Constant = Common.create_dag_node("Constant", 0, False, ("value",))
 
 class State(object): pass
-class Source(State): pass
-class Sink(State): pass
+class Source(State):
+    def set_sink(self, sink):
+        self.sink = sink
+class Sink(State):
+    def set_source(self, source):
+        self.source =source
+
+
 Input = Common.create_dag_node("Input", 0, False, (), (Source,))
 Output = Common.create_dag_node("Output", -1, False, (), (Sink,))
 

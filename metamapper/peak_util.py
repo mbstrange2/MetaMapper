@@ -78,23 +78,23 @@ def dag_to_peak(nodes: Nodes, dag: Dag):
     pass
 
 # Creates a new DagNode based off a peak class.
-def peak_to_node(nodes: Nodes, peak_fc, stateful, name=None) -> (DagNode, str):
-    if stateful:
-        raise NotImplementedError("TODO")
+def peak_to_node(nodes: Nodes, peak_fc, stateful, name=None, modparams=()) -> (DagNode, str):
 
     #Create DagNode
     peak_bv = peak_fc(family.PyFamily())
 
     inputs = list(peak_bv.input_t.field_dict.keys())
+    for i, param in enumerate(modparams):
+        assert inputs[-len(modparams)+i] == param
 
     outputs = list(peak_bv.output_t.field_dict.keys())
     if name is None:
         name = peak_bv.__name__
-    return nodes.create_dag_node(name, len(inputs), stateful=False), name
+    return nodes.create_dag_node(name, len(inputs), stateful=stateful, modparams=modparams), name
 
-def load_from_peak(nodes: Nodes, peak_fc, stateful=False, cmod=None, name=None) -> str:
+def load_from_peak(nodes: Nodes, peak_fc, stateful=False, cmod=None, name=None, modparams=()) -> str:
     if cmod is None:
         cmod = peak_to_coreir(peak_fc, wrap=True)
-    dag_node, node_name = peak_to_node(nodes, peak_fc, stateful=stateful, name=name)
+    dag_node, node_name = peak_to_node(nodes, peak_fc, stateful=stateful, name=name, modparams=modparams)
     nodes.add(node_name, peak_fc, cmod, dag_node)
     return node_name

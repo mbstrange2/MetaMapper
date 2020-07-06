@@ -12,7 +12,7 @@ def gen_CoreIRNodes(width):
     peak_ir = gen_peak_CoreIR(width)
     c = CoreIRContext()
     namespace = "coreir"
-    for op in ("mul", "add", "and_", "or_", "const"):
+    for op in ("mul", "add", "and_", "or_", "const", "neg"):
         name = f"{namespace}.{op}"
         peak_fc = peak_ir.instructions[name]
         coreir_op = strip_trailing(op)
@@ -32,4 +32,11 @@ def gen_CoreIRNodes(width):
         print(f"Loaded {name}!")
         assert name in CoreIRNodes.coreir_modules
         assert CoreIRNodes.name_from_coreir(cmod) == name
+
+    #Load reg
+    name = f"coreir.reg"
+    peak_fc = peak_ir.instructions[name]
+    cmod = c.get_namespace("coreir").generators["reg"](width=width)
+    name_ = load_from_peak(CoreIRNodes, peak_fc, cmod=cmod, name="coreir_reg", stateful=True, modparams=("clk_posedge", "init"))
+
     return CoreIRNodes

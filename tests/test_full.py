@@ -23,7 +23,7 @@ lassen_constraints = {
     ("ALU", gen_ALU(16), {}),
 ])
 #@pytest.mark.parametrize("app", ["conv_3_3", "add2", "add1_const", "add4", "add3_const"])
-@pytest.mark.parametrize("app", ["add_or", "add2", "add1_const"])
+@pytest.mark.parametrize("app", ["pipe", "add4_pipe", "add_or", "add2", "add1_const"])
 def test_app(arch, app):
     c = CoreIRContext(reset=True)
     file_name = f"examples/coreir/{app}.json"
@@ -37,4 +37,5 @@ def test_app(arch, app):
     mapper = Mapper(CoreIRNodes, ArchNodes)
     cmod = cutil.load_from_json(file_name)
     mapped_mod = mapper.do_mapping(cmod)
+    c.run_passes(["deletedeadinstances", "cullgraph"])
     mapped_mod.save_to_file(f"tests/build/{name}_{app}_mapped.json")

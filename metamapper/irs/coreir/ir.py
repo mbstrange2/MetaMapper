@@ -29,6 +29,23 @@ def gen_peak_CoreIR(width):
 
     CoreIR.add_instruction("corebit.const", constBit_fc)
 
+    @family_closure
+    def reg_fc(family):
+        Data = family.BitVector[width]
+        Bit = family.Bit
+        class reg(Peak):
+            def __init__(self):
+                self.value = Data(0)
+
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, clk_posedge: Const(Bit), init: Const(Data)) -> Data:
+                value = self.value
+                self.value = in0
+                return value
+        return reg
+
+    CoreIR.add_instruction("coreir.reg", reg_fc)
+
 
 
     class UnaryInput(Product):

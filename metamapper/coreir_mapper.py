@@ -9,6 +9,15 @@ import coreir
 
 class Mapper:
     def __init__(self, CoreIRNodes: Nodes, ArchNodes: Nodes, alg=GreedyCovering, peak_rules: tp.List[PeakRule]=None):
+        name = "coreir_reg"
+        if name in CoreIRNodes.dag_nodes and name not in ArchNodes.dag_nodes:
+            ArchNodes.add(
+                name,
+                CoreIRNodes.peak_nodes[name],
+                CoreIRNodes.coreir_modules[name],
+                CoreIRNodes.dag_nodes[name]
+            )
+
         self.CoreIRNodes = CoreIRNodes
         self.ArchNodes = ArchNodes
         self.table = RewriteTable(CoreIRNodes, ArchNodes)
@@ -23,7 +32,9 @@ class Mapper:
                     "coreir.add",
                     "coreir.mul",
                     "coreir.const",
+                    "coreir.neg",
                 ):
+                    print(f"Looking for {op}")
                     peak_rule = self.table.discover(op, node_name)
                     if peak_rule is None:
                         pass
@@ -40,7 +51,7 @@ class Mapper:
         #inline inlines them back in
         pb_dags = cutil.preprocess(self.CoreIRNodes, cmod)
         for inst, dag in pb_dags.items():
-
+            #print_dag(dag)
             mapped_dag = self.inst_sel(dag)
             SimplifyCombines().run(mapped_dag)
             RemoveSelects().run(mapped_dag)

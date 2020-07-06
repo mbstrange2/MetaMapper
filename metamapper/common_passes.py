@@ -24,6 +24,12 @@ class VerifyNodes(Visitor):
             self.wrong_nodes.add(node)
         Visitor.generic_visit(self, node)
 
+    def visit_coreir_reg_source(self, node):
+        Visitor.generic_visit(self, node)
+
+    def visit_coreir_reg_sink(self, node):
+        Visitor.generic_visit(self, node)
+
 class AddID(Visitor):
     def __init__(self):
         self.curid = 0
