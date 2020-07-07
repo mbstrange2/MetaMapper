@@ -32,7 +32,6 @@ class Mapper:
                     "coreir.add",
                     "coreir.mul",
                     "coreir.const",
-                    "coreir.neg",
                 ):
                     print(f"Looking for {op}")
                     peak_rule = self.table.discover(op, node_name)
@@ -46,22 +45,25 @@ class Mapper:
                 self.table.add_peak_rule(peak_rule)
         self.inst_sel = alg(self.table)
 
-    def do_mapping(self, cmod) -> coreir.Module:
-        #Preprocess isolates coreir primitive modules
-        #inline inlines them back in
-        pb_dags = cutil.preprocess(self.CoreIRNodes, cmod)
+    def do_mapping(self, pb_dags) -> coreir.Module:
+
         for inst, dag in pb_dags.items():
-            #print_dag(dag)
+            print("AAA")
+            print_dag(dag)
             mapped_dag = self.inst_sel(dag)
+            print("BBB")
+            print_dag(mapped_dag)
             SimplifyCombines().run(mapped_dag)
+            print("CCC")
+            print_dag(mapped_dag)
             RemoveSelects().run(mapped_dag)
+            print("DDD")
+            print_dag(mapped_dag)
             unmapped = VerifyNodes(self.ArchNodes).verify(mapped_dag)
             if unmapped is not None:
                 raise ValueError(f"Following nodes were unmapped: {unmapped}")
-
+            assert 0
             #Create a new module representing the mapped_dag
             mapped_def = cutil.dag_to_coreir_def(self.ArchNodes, mapped_dag, inst.module)
             inst.module.definition = mapped_def
             coreir.inline_instance(inst)
-        #cmod should now contain a mapped coreir module
-        return cmod

@@ -175,7 +175,7 @@ def preprocess(CoreIRNodes: Nodes, cmod: coreir.Module) -> tp.Mapping[coreir.Ins
 
     c = cmod.context
     #Run isolate_primitives pass
-    c.run_passes(["isolate_primitives"])
+    c.run_passes(["deletedeadinstances", "isolate_primitives"])
     #Find all instances of modules which need to be mapped (All the _.*primitives) modules
     primitive_blocks = []
     assert cmod.definition
@@ -184,6 +184,7 @@ def preprocess(CoreIRNodes: Nodes, cmod: coreir.Module) -> tp.Mapping[coreir.Ins
         if ns_name == "_":
             primitive_blocks.append(inst)
 
+    assert len(primitive_blocks) == 1
     #dagify all the primitive_blocks
     pb_dags = {inst:coreir_to_dag(CoreIRNodes, inst.module) for inst in primitive_blocks}
     return pb_dags
