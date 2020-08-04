@@ -1,4 +1,4 @@
-from metamapper.common_passes import VerifyNodes, print_dag, SimplifyCombines, RemoveSelects, prove_equal, Clone
+from metamapper.common_passes import VerifyNodes, print_dag, SimplifyCombines, RemoveSelects, prove_equal, Clone, count_pes
 import metamapper.coreir_util as cutil
 from metamapper.rewrite_table import RewriteTable
 from metamapper.node import Nodes
@@ -56,8 +56,9 @@ class Mapper:
                         print(f"  Found!")
         else:
             #load the rules
-            for peak_rule in peak_rules:
-                self.table.add_peak_rule(peak_rule)
+            for ind, peak_rule in enumerate(peak_rules):
+                print(str(ind))
+                self.table.add_peak_rule(peak_rule, name="test_name_" + str(ind))
         self.inst_sel = alg(self.table)
 
     def do_mapping(self, pb_dags, convert_unbound=True) -> coreir.Module:
@@ -88,5 +89,8 @@ class Mapper:
             #Create a new module representing the mapped_dag
             mapped_mod = cutil.dag_to_coreir_def(self.ArchNodes, mapped_dag, inst.module, inst.module.name + "_mapped")
             #coreir.inline_instance(inst)
+            print_dag(mapped_dag)
+            count_pes(mapped_dag)
             return mapped_mod
+
         #cmod should now contain a mapped coreir module

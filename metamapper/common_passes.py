@@ -120,6 +120,17 @@ class AddID(Visitor):
         node._id_ = self.curid
         self.curid += 1
 
+class CountPEs(Visitor):
+    def __init__(self):
+        self.res = 0
+
+    def generic_visit(self, node):
+        Visitor.generic_visit(self, node)
+
+    def visit_PE(self, node):
+        Visitor.generic_visit(self, node)
+        self.res += 1
+
 class Printer(Visitor):
     def __init__(self):
         self.res = "\n"
@@ -241,6 +252,9 @@ class RemoveSelects(Transformer):
 def print_dag(dag: Dag):
     AddID().run(dag)
     print(Printer().run(dag).res)
+
+def count_pes(dag: Dag):
+    print(CountPEs().run(dag).res)
 
 class CheckIfTree(Visitor):
     def __init__(self):

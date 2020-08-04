@@ -5,7 +5,7 @@ from .node import Nodes, DagNode, Dag, Constant, Input, Output, Bind
 from .peak_util import peak_to_dag
 from peak.mapper import ArchMapper, Unbound
 from peak.mapper import RewriteRule as PeakRule
-from peak import family_closure
+from peak import family_closure, family
 from .family import fam
 
 #debug
@@ -54,7 +54,8 @@ class RewriteTable:
         if not isinstance(rule, PeakRule):
             raise ValueError("rule is not a Peak Rule")
         from_dag = peak_to_dag(self.from_, rule.ir_fc)
-        from_bv = rule.ir_fc(fam().PyFamily())
+        print_dag(from_dag)
+        from_bv = rule.ir_fc(family.PyFamily())
         from_node_name = self.from_.name_from_peak(rule.ir_fc)
 
         # Create to_dag by Wrapping _to_dag within ibinding and obinding
