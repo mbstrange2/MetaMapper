@@ -23,22 +23,22 @@ import shutil
 import sys
 import inspect
 
-import peak_eq_0
-import peak_eq_1
-import peak_eq_2
-import peak_eq_3
+from examples.peak_gen.peak_eqs.peak_eq_0 import mapping_function_fc_0
+from examples.peak_gen.peak_eqs.peak_eq_1 import mapping_function_fc_1
+from examples.peak_gen.peak_eqs.peak_eq_2 import mapping_function_fc_2
+from examples.peak_gen.peak_eqs.peak_eq_3 import mapping_function_fc_3
 
-arch = read_arch("../DSEGraphAnalysis/outputs/subgraph_archs/subgraph_arch_merged.json")
+arch = read_arch("examples/peak_gen/subgraph_arch_merged.json")
 PE_fc = pe_arch_closure(arch)
 
 rrules = []
 
 # breakpoint()
-for ind, name in enumerate(glob.glob('../DSEGraphAnalysis/outputs/subgraph_rewrite_rules/*.json')): 
+for ind, name in enumerate(glob.glob('examples/peak_gen/rewrite_rules/*.json')): 
 
     
-    print("../DSEGraphAnalysis/outputs/subgraph_rewrite_rules/subgraph_rr_" + str(ind) + ".json")
-    with open("../DSEGraphAnalysis/outputs/subgraph_rewrite_rules/subgraph_rr_" + str(ind) + ".json") as json_file:
+    print("examples/peak_gen/rewrite_rules/subgraph_rr_" + str(ind) + ".json")
+    with open("examples/peak_gen/rewrite_rules/subgraph_rr_" + str(ind) + ".json") as json_file:
         rewrite_rule_in = jsonpickle.decode(json_file.read())
 
     input_binding = []
@@ -68,31 +68,14 @@ for ind, name in enumerate(glob.glob('../DSEGraphAnalysis/outputs/subgraph_rewri
     for o in output_binding_tmp:
         output_binding.append(tuple( [tuple(o[0]), tuple(o[1])] ))
 
-    # shutil.copyfile("../DSEGraphAnalysis/outputs/peak_eqs/peak_eq_" + str(ind) + ".py", "./tests/peak_eq.py") 
-    # import peak_eq
-    # peak_eq = reload(peak_eq)
-
-    # rrules.append(RewriteRule(input_binding, output_binding, peak_eq.mapping_function_fc, PE_fc))
-
-    # print(inspect.getsource(peak_eq))
-
-    # exec(open("../DSEGraphAnalysis/outputs/peak_eqs/peak_eq_" + str(ind) + ".py").read())
-
-    # peak_eq.mapping_function_fc.Py()
-    # peak_eq.mapping_function_fc.Magma()
-
     if ind == 0:
-        rrules.append(RewriteRule(input_binding, output_binding, peak_eq_0.mapping_function_fc_0, PE_fc))
-        print(inspect.getsource(peak_eq_0))
+        rrules.append(RewriteRule(input_binding, output_binding, mapping_function_fc_0, PE_fc))
     elif ind == 1:
-        rrules.append(RewriteRule(input_binding, output_binding, peak_eq_1.mapping_function_fc_1, PE_fc))
-        print(inspect.getsource(peak_eq_1))
+        rrules.append(RewriteRule(input_binding, output_binding, mapping_function_fc_1, PE_fc))
     elif ind == 2:
-        rrules.append(RewriteRule(input_binding, output_binding, peak_eq_2.mapping_function_fc_2, PE_fc))
-        print(inspect.getsource(peak_eq_2))
+        rrules.append(RewriteRule(input_binding, output_binding, mapping_function_fc_2, PE_fc))
     else:
-        rrules.append(RewriteRule(input_binding, output_binding, peak_eq_3.mapping_function_fc_3, PE_fc))
-        print(inspect.getsource(peak_eq_3))
+        rrules.append(RewriteRule(input_binding, output_binding, mapping_function_fc_3, PE_fc))
 
 
 
@@ -104,17 +87,9 @@ lassen_constraints = {
 }
 
 @pytest.mark.parametrize("arch", [
-#     ("PE_lut", gen_PE_lut(16), {}),
-#     #("Lassen", lassen_fc, lassen_constraints),
-#     ("ALU", gen_ALU(16), {}),
-# ])
-#@pytest.mark.parametrize("app", ["camera_pipeine"])#, "add2", "add1_const", "add4", "add3_const"])
-#@pytest.mark.parametrize("app", ["conv_3_3"])#, "add2", "add1_const", "add4", "add3_const"])
-# @pytest.mark.parametrize("app", ["add2", "add1_const", "add4", "add3_const"])
-
     #("PE_lut", gen_PE_lut(16), {}),
-    # ("PE", PE_fc, {})
-    ("Lassen", lassen_fc, lassen_constraints),
+    ("PE", PE_fc, {})
+    # ("Lassen", lassen_fc, lassen_constraints),
     #("ALU", gen_ALU(16), {}),
 ])
 # @pytest.mark.parametrize("app", ["camera_pipeline"])#, "add2", "add1_const", "add4", "add3_const"])
@@ -133,7 +108,7 @@ def test_app(arch, app):
 
     ArchNodes = Nodes("Arch")
     putil.load_from_peak(ArchNodes, arch_fc)
-    mapper = Mapper(CoreIRNodes, ArchNodes,conv=True)
+    mapper = Mapper(CoreIRNodes, ArchNodes, peak_rules=rrules, conv=True)
     mapped_cmod = mapper.do_mapping(pb_dags)
     mapped_cmod.print_()
     c.set_top(mapped_cmod)
