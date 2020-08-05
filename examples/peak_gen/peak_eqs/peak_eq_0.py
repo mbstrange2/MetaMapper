@@ -4,14 +4,14 @@ from peak import family
 from peak.family import AbstractFamily
 
 @family_closure
-def mapping_function_fc_0(family: AbstractFamily):
+def mapping_function_0_fc(family: AbstractFamily):
     Data = family.BitVector[16]
     SData = family.Signed[16]
     Bit = family.Bit
     @family.assemble(locals(), globals())
     class mapping_function_0(Peak):
-        def __call__(self, const0 : Const(Data), const1 : Const(Data), const2 : Const(Data), in2 : Data, in3 : Data, in1 : Data, in0 : Data) -> Data:
+        def __call__(self, in0 : Data, in1 : Data, in2 : Data) -> Bit:
   
-            return (((in1 + (const0 * in0)) + (const2 * in3)) + (const1 * in2))
+            return (Bit(1) if (in0 - in1) < in2 else Bit(0))
       
     return mapping_function_0

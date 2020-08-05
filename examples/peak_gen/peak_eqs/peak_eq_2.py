@@ -4,7 +4,7 @@ from peak import family
 from peak.family import AbstractFamily
 
 @family_closure
-def mapping_function_fc_2(family: AbstractFamily):
+def mapping_function_2_fc(family: AbstractFamily):
     Data = family.BitVector[16]
     SData = family.Signed[16]
     Bit = family.Bit
@@ -12,6 +12,6 @@ def mapping_function_fc_2(family: AbstractFamily):
     class mapping_function_2(Peak):
         def __call__(self, in0 : Data, in1 : Data) -> Data:
   
-            return (in1 + in0)
+            return (in0 - in1)
       
     return mapping_function_2

@@ -83,14 +83,14 @@ class Mapper:
             if unmapped is not None:
                 raise ValueError(f"Following nodes were unmapped: {unmapped}")
             assert VerifyNodes(self.CoreIRNodes).verify(original_dag) is None
-            counter_example = prove_equal(original_dag, mapped_dag)
-            if counter_example is not None:
-                raise ValueError(f"Mapped is not the same {counter_example}")
+            # counter_example = prove_equal(original_dag, mapped_dag)
+            # if counter_example is not None:
+            #     raise ValueError(f"Mapped is not the same {counter_example}")
             #Create a new module representing the mapped_dag
-            mapped_mod = cutil.dag_to_coreir_def(self.ArchNodes, mapped_dag, inst.module, inst.module.name + "_mapped")
+            # mapped_mod = cutil.dag_to_coreir_def(self.ArchNodes, mapped_dag, inst.module, inst.module.name + "_mapped")
             #coreir.inline_instance(inst)
-            print_dag(mapped_dag)
+            # print_dag(mapped_dag)
             count_pes(mapped_dag)
-            return mapped_mod
+            # return mapped_mod
 
         #cmod should now contain a mapped coreir module
