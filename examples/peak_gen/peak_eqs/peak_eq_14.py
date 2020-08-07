@@ -10,8 +10,8 @@ def mapping_function_14_fc(family: AbstractFamily):
     Bit = family.Bit
     @family.assemble(locals(), globals())
     class mapping_function_14(Peak):
-        def __call__(self, in0 : Data, in1 : Data) -> Data:
+        def __call__(self, const1 : Const(Data)) -> Data:
   
-            return (SData(in0) if SData(in0) > SData(in1) else SData(in1))
+            return const1
       
     return mapping_function_14

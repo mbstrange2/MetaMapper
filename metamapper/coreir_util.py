@@ -208,14 +208,15 @@ def preprocess(CoreIRNodes: Nodes, cmod: coreir.Module) -> tp.Mapping[coreir.Ins
 
     #First inline all non-findable instances
     #TODO better mechanism for this
-    to_inline = []
-    for inst in cmod.definition.instances:
-        mod_name = inst.module.name
-        if mod_name in ("counter", "reshape", "absd"):
-            to_inline.append(inst)
-    for inst in to_inline:
-        print("inlining", inst.name, inst.module.name)
-        coreir.inline_instance(inst)
+    for _ in range(10):
+        to_inline = []
+        for inst in cmod.definition.instances:
+            mod_name = inst.module.name
+            if mod_name in ("counter", "reshape", "absd", "umax", "umin", "smax", "smin", "abs", "sle"):
+                to_inline.append(inst)
+        for inst in to_inline:
+            print("inlining", inst.name, inst.module.name)
+            coreir.inline_instance(inst)
 
     c.run_passes(["isolate_primitives"])
 

@@ -14,9 +14,12 @@ import delegator
 import pytest
 from hwtypes import BitVector, Tuple, Bit, bit_vector
 
-from peak_gen.sim import wrapped_pe_arch_closure, pe_arch_closure
+from peak_gen.sim import fp_pe_arch_closure, pe_arch_closure
 from peak_gen.arch import read_arch, graph_arch
+from peak_gen.isa import inst_arch_closure
+from peak_gen.peak_wrapper import wrapped_peak_class
 from peak.mapper import RewriteRule
+from peak.mapper.utils import pretty_print_binding
 import glob, jsonpickle
 import peak
 import shutil 
@@ -34,7 +37,7 @@ import os
 #     except:
 #         pass
 
-mapping_funcs = []
+# mapping_funcs = []
 
 # shutil.copyfile("../DSEGraphAnalysis/outputs/subgraph_archs/subgraph_arch_merged.json", "examples/peak_gen/subgraph_arch_merged.json")
 # for ind, name in enumerate(glob.glob('../DSEGraphAnalysis/outputs/subgraph_rewrite_rules/*.json')): 
@@ -50,13 +53,14 @@ mapping_funcs = []
 
 #     mapping_funcs.append(getattr(peak_eq, "mapping_function_" + str(ind) + "_fc"))
 
+mapping_funcs = []
 for ind, name in enumerate(glob.glob('examples/peak_gen/peak_eqs/*.py')): 
     peak_eq = importlib.import_module("examples.peak_gen.peak_eqs.peak_eq_" + str(ind))
 
     mapping_funcs.append(getattr(peak_eq, "mapping_function_" + str(ind) + "_fc"))
 
 arch = read_arch("examples/peak_gen/subgraph_arch_merged.json")
-PE_fc = pe_arch_closure(arch)
+PE_fc = wrapped_peak_class(arch)
 
 rrules = []
 
@@ -68,6 +72,7 @@ for ind, name in enumerate(glob.glob('examples/peak_gen/rewrite_rules/*.json')):
     input_binding = []
 
     input_binding_tmp = rewrite_rule_in["ibinding"]
+    # breakpoint()
 
     for i in input_binding_tmp:
         if i[1][0] != "fp_vals":
@@ -92,6 +97,8 @@ for ind, name in enumerate(glob.glob('examples/peak_gen/rewrite_rules/*.json')):
     for o in output_binding_tmp:
         output_binding.append(tuple( [tuple(o[0]), tuple(o[1])] ))
 
+    pretty_print_binding(input_binding)
+    pretty_print_binding(output_binding)
     rrules.append(RewriteRule(input_binding, output_binding, mapping_funcs[ind], PE_fc))
 
 

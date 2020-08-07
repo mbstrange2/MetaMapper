@@ -70,6 +70,7 @@ class Mapper:
             #print("premapped")
             #print_dag(dag)
             original_dag = Clone().clone(dag, iname_prefix=f"original_")
+            # print_dag(original_dag)
             mapped_dag = self.inst_sel(dag)
             #print("postmapped")
             #print_dag(mapped_dag)

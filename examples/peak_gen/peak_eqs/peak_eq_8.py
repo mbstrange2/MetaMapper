@@ -12,6 +12,6 @@ def mapping_function_8_fc(family: AbstractFamily):
     class mapping_function_8(Peak):
         def __call__(self, in0 : Data, in1 : Data) -> Data:
   
-            return (in0 if in0 > in1 else in1)
+            return (in0 + in1)
       
     return mapping_function_8
