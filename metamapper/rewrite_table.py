@@ -11,8 +11,6 @@ from .family import fam
 #debug
 from peak.mapper.utils import pretty_print_binding
 
-
-#TODO possibly make from peak_rule directly 
 class RewriteRule:
     def __init__(self,
         tile: Dag,
@@ -22,10 +20,10 @@ class RewriteRule:
         name = None
     ):
 
-        pattern_is_tree = CheckIfTree().is_tree(tile)
-        if not pattern_is_tree:
-            print_dag(tile)
-            raise NotImplementedError("Tile not a tree")
+        #pattern_is_tree = CheckIfTree().is_tree(tile)
+        #if not pattern_is_tree:
+        #    print_dag(tile)
+        #    raise NotImplementedError("Tile not a tree")
 
         self.tile = tile
         self.replace = replace
@@ -53,10 +51,10 @@ class RewriteTable:
         if not isinstance(rule, PeakRule):
             raise ValueError("rule is not a Peak Rule")
         from_dag = peak_to_dag(self.from_, rule.ir_fc)
-        print_dag(from_dag)
         from_bv = rule.ir_fc(family.PyFamily())
         from_node_name = self.from_.name_from_peak(rule.ir_fc)
 
+        #print_dag(from_dag)
         # Create to_dag by Wrapping _to_dag within ibinding and obinding
         # Get input/output names from peak_cls
 
@@ -115,7 +113,6 @@ class RewriteTable:
         output_children = [obind.select(field) for field in from_bv.output_t.field_dict]
         to_output = Output(*output_children, iname="self", type=from_bv.output_t)
         to_dag = Dag([to_input], [to_output])
-
         #print("Before combine")
         #print_dag(to_dag)
         BindsToCombines().run(to_dag)

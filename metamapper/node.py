@@ -140,7 +140,7 @@ class Nodes:
             assert isinstance(cmod, coreir.Module)
         if node_name in self._node_names:
             raise ValueError(f"{node_name} already exists")
-        if isinstance(dag_nodes, DagNode):
+        if issubclass(dag_nodes, DagNode):
             #This cannot be stateful
             if isinstance(dag_nodes, State):
                 raise ValueError("State nodes need to come in pairs")
@@ -150,6 +150,8 @@ class Nodes:
                 raise ValueError("Needs to be source")
             if not isinstance(dag_nodes[1], Sink):
                 raise ValueError("Needs to be source")
+        else:
+            raise NotImplementedError(dag_nodes)
         self.dag_nodes[node_name] = dag_nodes
         self.peak_nodes[node_name] = peak_node
         self.coreir_modules[node_name] = cmod

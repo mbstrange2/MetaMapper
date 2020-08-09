@@ -53,6 +53,12 @@ def _get_aadt(T):
     T = rebind_type(T, fam().SMTFamily())
     return fam().SMTFamily().get_adt_t(T)
 
+
+class UnboundTo0(Visitor):
+    def visit_Constant(self, node):
+        if node.value is Unbound:
+            node.value = node.type(0)
+
 class SMT(Visitor):
     def __init__(self):
         pass

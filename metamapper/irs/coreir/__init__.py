@@ -1,5 +1,5 @@
 from .ir import gen_peak_CoreIR
-from ...node import Nodes, Constant
+from ...node import Nodes, DagNode, Select
 from ... import CoreIRContext
 from ...peak_util import load_from_peak
 import coreir
@@ -38,5 +38,29 @@ def gen_CoreIRNodes(width):
             assert CoreIRNodes.name_from_coreir(cmod) == name
             print(f"Loaded {name}!")
 
+
+
+    class Rom(DagNode):
+        def __init__(self, raddr, ren, *, init, iname):
+            super().__init__(raddr, ren, init=init, iname=iname)
+
+        @property
+        def attributes(self):
+            return ("init", "iname")
+
+        #Hack to get correct port name
+        def select(self, field):
+            self._selects.add("rdata")
+            return Select(self, field="rdata")
+
+        nodes = CoreIRNodes
+        node_name = "memory.rom2"
+        num_children = 2
+
+    rom2 = CoreIRContext().get_namespace("memory").generators["rom2"](depth=255, width=width)
+
+    CoreIRNodes.add("memory.rom2", peak_ir.instructions["memory.rom2"], rom2, Rom)
+    assert "memory.rom2" in CoreIRNodes.dag_nodes
+    assert CoreIRNodes.dag_nodes["memory.rom2"] is not None
     return CoreIRNodes
 

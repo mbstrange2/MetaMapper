@@ -18,16 +18,24 @@ from hwtypes.modifiers import strip_modifiers
 class FixConsts(Transformer):
     def __init__(self, peak_fc, nodes):
         input_t = peak_fc.Py.input_t
-        self.const_fields = set()
+        self.const_fields = {}
         for field, T in input_t.field_dict.items():
             if issubclass(T, Const):
-                self.const_fields.add(field)
-        self.const_node = nodes.dag_nodes["coreir.const"]
+                self.const_fields[field] = strip_modifiers(T)
+        self.nodes = nodes
 
     def visit_Select(self, node : Select):
         Transformer.generic_visit(self, node)
         if isinstance(node.children()[0], Input) and node.field in self.const_fields:
-            const = self.const_node(node)
+
+            T = self.const_fields[node.field]
+            if T is fam().PyFamily().Bit:
+                const_node = self.nodes.dag_nodes["corebit.const"]
+            elif T is fam().PyFamily().BitVector[16]:
+                const_node = self.nodes.dag_nodes["coreir.const"]
+            else:
+                raise ValueError(T)
+            const = const_node(node)
             return const.select("out")
 
 def flatten(cmod: coreir.Module):
@@ -49,7 +57,6 @@ def peak_to_dag(nodes: Nodes, peak_fc):
     if node_name is None:
         cmod = peak_to_coreir(peak_fc)
         flatten(cmod)
-        # cmod.print_()
         dag = coreir_to_dag(nodes, cmod)
         #print("pre-fix")
         #print_dag(dag)
@@ -136,5 +143,6 @@ def load_from_peak(nodes: Nodes, peak_fc, stateful=False, cmod=None, name=None, 
     if cmod is None and not wasm:
         cmod = peak_to_coreir(peak_fc, wrap=True)
     dag_node, node_name = peak_to_node(nodes, peak_fc, stateful=stateful, name=name)
+    assert issubclass(dag_node, DagNode)
     nodes.add(node_name, peak_fc, cmod, dag_node)
     return node_name

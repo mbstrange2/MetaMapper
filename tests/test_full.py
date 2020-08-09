@@ -126,14 +126,14 @@ def test_app(arch, app):
     cutil.load_libs(["commonlib"])
     # cutil.load_libs(["lakelib"])
     CoreIRNodes = gen_CoreIRNodes(16)
-    cmod = cutil.load_from_json(file_name, libraries=["lakelib"])
-    pb_dags = cutil.preprocess(CoreIRNodes, cmod)
+    cmod = cutil.load_from_json(file_name) # libraries=["lakelib"])
     name, arch_fc, constraints = arch
 
+    app_dag = cutil.preprocess(CoreIRNodes, cmod)
     ArchNodes = Nodes("Arch")
     putil.load_from_peak(ArchNodes, arch_fc)
     mapper = Mapper(CoreIRNodes, ArchNodes, peak_rules=rrules, conv=False)
-    mapper.do_mapping(pb_dags)
+    mapper.do_mapping(app_dag)
     # mapped_cmod.print_()
     # c.set_top(mapped_cmod)
     # c.run_passes(["cullgraph"])

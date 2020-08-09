@@ -8,6 +8,19 @@ def gen_peak_CoreIR(width):
     CoreIR = IR()
 
 
+
+    @family_closure
+    def rom_fc(family: AbstractFamily):
+        Data = family.BitVector[width]
+        Bit = family.Bit
+        class rom(Peak):
+            @name_outputs(rdata=Data)
+            def __call__(self, raddr: Data, ren: Bit) -> Data:
+                return Data(0)
+        return rom
+
+    CoreIR.add_instruction("memory.rom2", rom_fc)
+
     @family_closure
     def abs_fc(family: AbstractFamily):
         Data = family.BitVector[width]
@@ -20,6 +33,7 @@ def gen_peak_CoreIR(width):
         return abs
 
     CoreIR.add_instruction("commonlib.abs", abs_fc)
+
 
     @family_closure
     def absd_fc(family: AbstractFamily):
@@ -94,11 +108,11 @@ def gen_peak_CoreIR(width):
     @family_closure
     def constBit_fc(family):
         Bit = family.Bit
-        class const(Peak):
+        class constbit(Peak):
             @name_outputs(out=Bit)
             def __call__(self, value: Const(Bit)):
                 return value
-        return const
+        return constbit
 
     CoreIR.add_instruction("corebit.const", constBit_fc)
 

@@ -1,7 +1,7 @@
-from metamapper.common_passes import VerifyNodes, print_dag, SimplifyCombines, RemoveSelects, prove_equal, Clone, count_pes
+from metamapper.common_passes import VerifyNodes, print_dag, SimplifyCombines, RemoveSelects, prove_equal, Clone, count_pes, UnboundTo0
 import metamapper.coreir_util as cutil
 from metamapper.rewrite_table import RewriteTable
-from metamapper.node import Nodes
+from metamapper.node import Nodes, Dag
 from metamapper.instruction_selection import GreedyCovering
 from peak.mapper import RewriteRule as PeakRule
 import typing as tp
@@ -61,37 +61,37 @@ class Mapper:
                 self.table.add_peak_rule(peak_rule, name="test_name_" + str(ind))
         self.inst_sel = alg(self.table)
 
-    def do_mapping(self, pb_dags, convert_unbound=True) -> coreir.Module:
-        #Preprocess isolates coreir primitive modules
-        #inline inlines them back in
-        if len(pb_dags) != 1:
-            raise ValueError(f"Bad: {len(pb_dags)}")
-        for inst, dag in pb_dags.items():
-            #print("premapped")
-            #print_dag(dag)
-            original_dag = Clone().clone(dag, iname_prefix=f"original_")
-            # print_dag(original_dag)
-            mapped_dag = self.inst_sel(dag)
-            #print("postmapped")
-            #print_dag(mapped_dag)
-            SimplifyCombines().run(mapped_dag)
-            #print("simplifyCombines")
-            #print_dag(mapped_dag)
-            RemoveSelects().run(mapped_dag)
-            #print("RemovedSelects")
-            #print_dag(mapped_dag)
-            unmapped = VerifyNodes(self.ArchNodes).verify(mapped_dag)
-            if unmapped is not None:
-                raise ValueError(f"Following nodes were unmapped: {unmapped}")
-            assert VerifyNodes(self.CoreIRNodes).verify(original_dag) is None
-            # counter_example = prove_equal(original_dag, mapped_dag)
-            # if counter_example is not None:
-            #     raise ValueError(f"Mapped is not the same {counter_example}")
-            #Create a new module representing the mapped_dag
-            # mapped_mod = cutil.dag_to_coreir_def(self.ArchNodes, mapped_dag, inst.module, inst.module.name + "_mapped")
-            #coreir.inline_instance(inst)
-            # print_dag(mapped_dag)
-            count_pes(mapped_dag)
-            # return mapped_mod
 
-        #cmod should now contain a mapped coreir module
+    def map_dag(self, dag: Dag, prove=True) -> Dag:
+        original_dag = Clone().clone(dag, iname_prefix=f"original_")
+        #print_dag(original_dag)
+        mapped_dag = self.inst_sel(dag)
+
+        UnboundTo0().run(mapped_dag)
+        # print("postmapped")
+        # print_dag(mapped_dag)
+        SimplifyCombines().run(mapped_dag)
+        # print("simplifyCombines")
+        # print_dag(mapped_dag)
+        RemoveSelects().run(mapped_dag)
+        # print("RemovedSelects")
+        #print_dag(mapped_dag)
+        unmapped = VerifyNodes(self.ArchNodes).verify(mapped_dag)
+        if unmapped is not None:
+            unmapped = set(filter(lambda v: not isinstance(v, self.CoreIRNodes.dag_nodes["memory.rom2"]), unmapped))
+            if len(unmapped) > 0:
+                raise ValueError(f"Following nodes were unmapped: {unmapped}")
+        assert VerifyNodes(self.CoreIRNodes).verify(original_dag) is None
+        if prove:
+            counter_example = prove_equal(original_dag, mapped_dag)
+            if counter_example is not None:
+                raise ValueError(f"Mapped is not the same {counter_example}")
+        count_pes(mapped_dag)
+        return mapped_dag
+
+    def map_module(self, cmod: coreir.Module, prove=True) -> coreir.Module:
+        premapped_dag = cutil.preprocess(self.CoreIRNodes, cmod)
+        mapped_dag = self.map_dag(premapped_dag, prove=prove)
+        #Create a new module representing the mapped_dag
+        mapped_mod = cutil.dag_to_coreir_def(self.ArchNodes, mapped_dag, cmod, cmod.name + "_mapped")
+        return mapped_mod
