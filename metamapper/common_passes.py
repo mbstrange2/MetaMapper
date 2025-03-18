@@ -31,7 +31,7 @@ def n2s(node):
 class DagToPdf(Visitor):
     def __init__(self, no_unbound):
         self.no_unbound = no_unbound
-        
+
 
     def doit(self, dag: Dag):
         AddID().run(dag)
@@ -766,7 +766,7 @@ class RemoveSelects(Transformer):
 
 def print_dag(dag: Dag):
     AddID().run(dag)
-    res = Printer().run(dag).res 
+    res = Printer().run(dag).res
     print(res)
     return res
 
@@ -980,7 +980,7 @@ class PipelinePEs(Transformer):
 
     def turn_on_pipeline_reg(self, inst_node, port):
         if not hasattr(inst_node, "assemble"):
-            return 
+            return
 
         instr = inst_node.assemble(family.PyFamily())
         aadt = AssembledADT[
@@ -1010,8 +1010,10 @@ class PipelinePEs(Transformer):
         Transformer.generic_visit(self, node)
         if node.node_name == "global.PE" and hasattr(node, "_metadata_"):
             ports = node._metadata_
-            for port_idx, child in enumerate(node.children()):
-                if child.node_name == "Select":
-                    self.turn_on_pipeline_reg(node.children()[0], ports[port_idx][0])
+            # Check if the metadata is only num_input_fifo, num_output_fifo
+            if not ("num_input_fifo" in ports.keys() and "num_output_fifo" in ports.keys() and (len(ports.keys()) == 2)):
+                for port_idx, child in enumerate(node.children()):
+                    if child.node_name == "Select":
+                        self.turn_on_pipeline_reg(node.children()[0], ports[port_idx][0])
 
         return node
