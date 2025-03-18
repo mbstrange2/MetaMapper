@@ -1008,10 +1008,11 @@ class PipelinePEs(Transformer):
 
     def generic_visit(self, node):
         Transformer.generic_visit(self, node)
+        filter_fifo = True
         if node.node_name == "global.PE" and hasattr(node, "_metadata_"):
             ports = node._metadata_
             # Check if the metadata is only num_input_fifo, num_output_fifo
-            if not ("num_input_fifo" in ports.keys() and "num_output_fifo" in ports.keys() and (len(ports.keys()) == 2)):
+            if not filter_fifo or not ("num_input_fifo" in ports.keys() and "num_output_fifo" in ports.keys() and (len(ports.keys()) == 2)):
                 for port_idx, child in enumerate(node.children()):
                     if child.node_name == "Select":
                         self.turn_on_pipeline_reg(node.children()[0], ports[port_idx][0])
