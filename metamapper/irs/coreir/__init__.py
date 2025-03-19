@@ -53,7 +53,7 @@ def gen_CoreIRNodes(width):
     CoreIRNodes.custom_nodes = ["coreir.neq", "commonlib.abs", "commonlib.mult_middle", "float.eq", "float.gt", "float.le",
                                 "float.ge", "float.lt", "float.max", "float.min", "float.div", "float_DW.fp_mul",
                                 "float_DW.fp_add", "float.sub", "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f",
-                                "fp_getfint", "fp_getffrac", "fp_cnvint2f", "float.exp", "float.mux", "float.ln"]
+                                "fp_getfint", "fp_getffrac", "fp_cnvint2f", "f2int_pack", "float.exp", "float.mux", "float.ln", "float.bf16toint8_pack"]
 
     for name in CoreIRNodes.custom_nodes:
         if name not in CoreIRNodes.coreir_modules:
@@ -278,6 +278,19 @@ def gen_CoreIRNodes(width):
     sink_node = Output(not_.select("out"), type=output_t)
 
     CoreIRNodes.custom_inline["coreir.neq"] = (Dag(sources=[source_node4], sinks=[sink_node]), [eq])
+
+    ######### Definition of float.bf16toint8_pack #########
+    input_t = Product.from_fields("Input", {f"in{i}": BitVector[16] for i in range(2)})
+    output_t = Product.from_fields("Output", {"out": BitVector[16]})
+
+    source_node5 = Input(iname="self", type=input_t)
+    in0 = source_node5.select("in0")
+    in1 = source_node5.select("in1")
+
+    bf16toint8_pack = CoreIRNodes.dag_nodes["f2int_pack"](in0, in1, type=BitVector[16])
+    sink_node = Output(bf16toint8_pack.select("out"), type=output_t)
+
+    CoreIRNodes.custom_inline["float.bf16toint8_pack"] = (Dag(sources=[source_node5], sinks=[sink_node]), [bf16toint8_pack])
 
 
     return CoreIRNodes
