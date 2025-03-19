@@ -61,7 +61,8 @@ def gen_rrules(pipelined=False):
         "fp_ge": "float.ge",
         "fp_le": "float.le",
         "fp_eq": "float.eq",
-        "fp_ln": "float.ln"
+        "fp_ln": "float.ln",
+        "fp_bf16toint8_pack": "float.bf16toint8_pack"
     }
 
     for idx, rrule in enumerate(rrule_files):

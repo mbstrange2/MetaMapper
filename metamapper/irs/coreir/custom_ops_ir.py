@@ -265,6 +265,62 @@ def gen_custom_ops_peak_CoreIR(width):
     CoreIR.add_instruction("fp_cnvint2f", fp_cnvint2f_fc)
 
     @family_closure
+    def f2int_pack_fc(family: AbstractFamily):
+        Data = family.BitVector[16]
+        SInt = family.Signed
+        UInt = family.Unsigned[16]
+        BitVector = family.BitVector
+        Bit = family.Bit
+
+        # Get the BFloat16 type.
+        BFloat16 = BFloat16_fc(family)
+
+        @family.assemble(locals(), globals())
+        class f2int_pack(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, in1: Data) -> Data:
+                # Convert in0 from bf16 to int8
+                sign_a = BitVector[16](in0 & 0x8000)
+                mant_a = BitVector[16](in0 & 0x7F) | 0x80
+                exp_a = UInt(in0)[7:15]
+                biased_exp_a = SInt[9](exp_a.zext(1))
+                unbiased_exp_a = SInt[9](biased_exp_a - SInt[9](127))
+                if unbiased_exp_a < 0:
+                    mant_shift_a = BitVector[23](0)
+                else:
+                    mant_shift_a = BitVector[23](mant_a) << BitVector[23](unbiased_exp_a)
+                unsigned_res0_a = BitVector[23](mant_shift_a >> BitVector[23](7))
+                unsigned_res_a = BitVector[8](unsigned_res0_a[0:8])
+                if sign_a == 0x8000:
+                    int8_a = -SInt[8](unsigned_res_a)
+                else:
+                    int8_a = SInt[8](unsigned_res_a)
+
+                # Convert in1 from bf16 to int8
+                sign_b = BitVector[16](in1 & 0x8000)
+                mant_b = BitVector[16](in1 & 0x7F) | 0x80
+                exp_b = UInt(in1)[7:15]
+                biased_exp_b = SInt[9](exp_b.zext(1))
+                unbiased_exp_b = SInt[9](biased_exp_b - SInt[9](127))
+                if unbiased_exp_b < 0:
+                    mant_shift_b = BitVector[23](0)
+                else:
+                    mant_shift_b = BitVector[23](mant_b) << BitVector[23](unbiased_exp_b)
+                unsigned_res0_b = BitVector[23](mant_shift_b >> BitVector[23](7))
+                unsigned_res_b = BitVector[8](unsigned_res0_b[0:8])
+                if sign_b == 0x8000:
+                    int8_b = -SInt[8](unsigned_res_b)
+                else:
+                    int8_b = SInt[8](unsigned_res_b)
+
+                # Pack the two int8 values into one 16-bit BitVector
+                packed = (BitVector[16](int8_a) << BitVector[16](8)) | BitVector[16](int8_b)
+                return Data(packed)
+
+        return f2int_pack
+    CoreIR.add_instruction("f2int_pack", f2int_pack_fc)
+
+    @family_closure
     def fp_cnvexp2f_fc(family: AbstractFamily):
         BitVector = family.BitVector
         BFloat = BFloat16_fc(family)
@@ -1035,5 +1091,37 @@ def gen_custom_ops_peak_CoreIR(width):
         return fp_ln
 
     CoreIR.add_instruction("float.ln", fp_ln_fc)
+
+    @family_closure
+    def fp_bf16toint8_pack_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        BFloat = BFloat16_fc(family)
+        Data = family.BitVector[16]
+        Bit = family.Bit
+        SInt = family.Signed
+        SData = SInt[16]
+        UInt = family.Unsigned
+        UData = UInt[16]
+        UData32 = UInt[32]
+
+        FPExpBV = family.BitVector[8]
+        FPFracBV = family.BitVector[7]
+
+        def bv2float(bv):
+            return BFloat.reinterpret_from_bv(bv)
+
+        @family.assemble(locals(), globals())
+        class fp_bf16toint8_pack(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, in1: Data) -> Data:
+
+                # We replace this
+                a_fpadd = in0 + in1
+
+                return Data(a_fpadd)
+
+        return fp_bf16toint8_pack
+
+    CoreIR.add_instruction("float.bf16toint8_pack", fp_bf16toint8_pack_fc)
 
     return CoreIR
