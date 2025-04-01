@@ -1011,7 +1011,7 @@ class PipelinePEs(Transformer):
         filter_fifo = True
         if node.node_name == "global.PE" and hasattr(node, "_metadata_"):
             ports = node._metadata_
-            # Check if a list first...
+            # Check if a list first.....
             if isinstance(ports, list):
                 for port_idx, child in enumerate(node.children()):
                     if child.node_name == "Select":
