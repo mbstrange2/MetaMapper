@@ -53,7 +53,8 @@ def gen_CoreIRNodes(width):
     CoreIRNodes.custom_nodes = ["coreir.neq", "commonlib.abs", "commonlib.mult_middle", "float.eq", "float.gt", "float.le",
                                 "float.ge", "float.lt", "float.max", "float.min", "float.div", "float_DW.fp_mul",
                                 "float_DW.fp_add", "float.sub", "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f",
-                                "fp_getfint", "fp_getffrac", "fp_cnvint2f", "f2int_pack", "float.exp", "float.mux", "float.ln", "float.bf16toint8_pack"]
+                                "fp_getfint", "fp_getffrac", "fp_cnvint2f", "float.exp", "float.mux", "float.ln",
+                                "f2int_pack", "int2f_unpack_high", "int2f_unpack_low", "float.bf16toint8_pack", "float.int8tobf16_unpack_high", "float.int8tobf16_unpack_low"]
 
     for name in CoreIRNodes.custom_nodes:
         if name not in CoreIRNodes.coreir_modules:
@@ -292,6 +293,29 @@ def gen_CoreIRNodes(width):
 
     CoreIRNodes.custom_inline["float.bf16toint8_pack"] = (Dag(sources=[source_node5], sinks=[sink_node]), [bf16toint8_pack])
 
+    ######### Definition of float.int8tobf16_unpack_high #########
+    input_t = Product.from_fields("Input", {"in0": BitVector[16]})
+    output_t = Product.from_fields("Output", {"out": BitVector[16]})
+
+    source_node7 = Input(iname="self", type=input_t)
+    in0 = source_node7.select("in0")
+
+    high_unpack = CoreIRNodes.dag_nodes["int2f_unpack_high"](in0)
+    sink_node = Output(high_unpack.select("out"), type=output_t)
+
+    CoreIRNodes.custom_inline["float.int8tobf16_unpack_high"] = (Dag(sources=[source_node7], sinks=[sink_node]), [high_unpack])
+
+    ######### Definition of float.int8tobf16_unpack_low #########
+    input_t = Product.from_fields("Input", {"in0": BitVector[16]})
+    output_t = Product.from_fields("Output", {"out": BitVector[16]})
+
+    source_node8 = Input(iname="self", type=input_t)
+    in0 = source_node8.select("in0")
+
+    low_unpack = CoreIRNodes.dag_nodes["int2f_unpack_low"](in0)
+    sink_node = Output(low_unpack.select("out"), type=output_t)
+
+    CoreIRNodes.custom_inline["float.int8tobf16_unpack_low"] = (Dag(sources=[source_node8], sinks=[sink_node]), [low_unpack])
 
     return CoreIRNodes
 
