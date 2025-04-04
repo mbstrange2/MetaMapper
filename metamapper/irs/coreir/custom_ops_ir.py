@@ -321,6 +321,157 @@ def gen_custom_ops_peak_CoreIR(width):
     CoreIR.add_instruction("f2int_pack", f2int_pack_fc)
 
     @family_closure
+    def int2f_unpack_high_fc(family: AbstractFamily):
+        Data = family.BitVector[16]
+        SInt = family.Signed
+        UInt = family.Unsigned[16]
+        BitVector = family.BitVector
+        Bit = family.Bit
+
+        # Get the BFloat16 type.
+        BFloat16 = BFloat16_fc(family)
+
+        @family.assemble(locals(), globals())
+        class int2f_unpack_high(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data) -> Data:
+
+                # Extract upper 8 bits as int8
+                int8_val = BitVector[8](in0[8:16])
+
+                # Convert int8 to bfloat16 using fp_cnvint2f logic
+                if (int8_val[7] == Bit(1)):
+                    sign = BitVector[16](1 << 15)
+                    abs_input = BitVector[16](-SInt[16](int8_val))
+                else:
+                    sign = BitVector[16](0)
+                    abs_input = BitVector[16](int8_val)
+                scale = SInt[16](-127)
+                if abs_input[0] == Bit(1):
+                    scale = SInt[16](0)
+                if abs_input[1] == Bit(1):
+                    scale = SInt[16](1)
+                if abs_input[2] == Bit(1):
+                    scale = SInt[16](2)
+                if abs_input[3] == Bit(1):
+                    scale = SInt[16](3)
+                if abs_input[4] == Bit(1):
+                    scale = SInt[16](4)
+                if abs_input[5] == Bit(1):
+                    scale = SInt[16](5)
+                if abs_input[6] == Bit(1):
+                    scale = SInt[16](6)
+                if abs_input[7] == Bit(1):
+                    scale = SInt[16](7)
+                if abs_input[8] == Bit(1):
+                    scale = SInt[16](8)
+                if abs_input[9] == Bit(1):
+                    scale = SInt[16](9)
+                if abs_input[10] == Bit(1):
+                    scale = SInt[16](10)
+                if abs_input[11] == Bit(1):
+                    scale = SInt[16](11)
+                if abs_input[12] == Bit(1):
+                    scale = SInt[16](12)
+                if abs_input[13] == Bit(1):
+                    scale = SInt[16](13)
+                if abs_input[14] == Bit(1):
+                    scale = SInt[16](14)
+                if abs_input[15] == Bit(1):
+                    scale = SInt[16](15)
+
+                normmant_mul_left = SInt[16](abs_input)
+                normmant_mul_right = SInt[16](15) - scale
+                normmant_mask = SInt[16](0x7F00)
+                if scale >= 0:
+                    normmant = BitVector[16]((normmant_mul_left << normmant_mul_right) & normmant_mask)
+                else:
+                    normmant = BitVector[16](0)
+                normmant = BitVector[16](normmant) >> 8
+                biased_scale = scale + 127
+                bfloat16_val = (sign | ((BitVector[16](biased_scale) << 7) & (0xFF << 7)) | normmant)
+
+                return Data(bfloat16_val)
+
+        return int2f_unpack_high
+    CoreIR.add_instruction("int2f_unpack_high", int2f_unpack_high_fc)
+
+    @family_closure
+    def int2f_unpack_low_fc(family: AbstractFamily):
+        Data = family.BitVector[16]
+        SInt = family.Signed
+        UInt = family.Unsigned[16]
+        BitVector = family.BitVector
+        Bit = family.Bit
+
+        # Get the BFloat16 type.
+        BFloat16 = BFloat16_fc(family)
+
+        @family.assemble(locals(), globals())
+        class int2f_unpack_low(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data) -> Data:
+                # Extract lower 8 bits as int8
+                int8_val = BitVector[8](in0[0:8])
+
+                # Convert int8 to bfloat16 using fp_cnvint2f logic
+                if (int8_val[7] == Bit(1)):
+                    sign = BitVector[16](1 << 15)
+                    abs_input = BitVector[16](-SInt[16](int8_val))
+                else:
+                    sign = BitVector[16](0)
+                    abs_input = BitVector[16](int8_val)
+                scale = SInt[16](-127)
+                if abs_input[0] == Bit(1):
+                    scale = SInt[16](0)
+                if abs_input[1] == Bit(1):
+                    scale = SInt[16](1)
+                if abs_input[2] == Bit(1):
+                    scale = SInt[16](2)
+                if abs_input[3] == Bit(1):
+                    scale = SInt[16](3)
+                if abs_input[4] == Bit(1):
+                    scale = SInt[16](4)
+                if abs_input[5] == Bit(1):
+                    scale = SInt[16](5)
+                if abs_input[6] == Bit(1):
+                    scale = SInt[16](6)
+                if abs_input[7] == Bit(1):
+                    scale = SInt[16](7)
+                if abs_input[8] == Bit(1):
+                    scale = SInt[16](8)
+                if abs_input[9] == Bit(1):
+                    scale = SInt[16](9)
+                if abs_input[10] == Bit(1):
+                    scale = SInt[16](10)
+                if abs_input[11] == Bit(1):
+                    scale = SInt[16](11)
+                if abs_input[12] == Bit(1):
+                    scale = SInt[16](12)
+                if abs_input[13] == Bit(1):
+                    scale = SInt[16](13)
+                if abs_input[14] == Bit(1):
+                    scale = SInt[16](14)
+                if abs_input[15] == Bit(1):
+                    scale = SInt[16](15)
+
+                normmant_mul_left = SInt[16](abs_input)
+                normmant_mul_right = SInt[16](15) - scale
+                normmant_mask = SInt[16](0x7F00)
+                if scale >= 0:
+                    normmant = BitVector[16]((normmant_mul_left << normmant_mul_right) & normmant_mask)
+                else:
+                    normmant = BitVector[16](0)
+                normmant = BitVector[16](normmant) >> 8
+                biased_scale = scale + 127
+                bfloat16_val = (sign | ((BitVector[16](biased_scale) << 7) & (0xFF << 7)) | normmant)
+
+                return Data(bfloat16_val)
+
+        return int2f_unpack_low
+    CoreIR.add_instruction("int2f_unpack_low", int2f_unpack_low_fc)
+
+    @family_closure
     def fp_cnvexp2f_fc(family: AbstractFamily):
         BitVector = family.BitVector
         BFloat = BFloat16_fc(family)
@@ -1123,5 +1274,57 @@ def gen_custom_ops_peak_CoreIR(width):
         return fp_bf16toint8_pack
 
     CoreIR.add_instruction("float.bf16toint8_pack", fp_bf16toint8_pack_fc)
+
+    @family_closure
+    def fp_int8tobf16_unpack_high_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        BFloat = BFloat16_fc(family)
+        Data = family.BitVector[16]
+        Bit = family.Bit
+        SInt = family.Signed
+        SData = SInt[16]
+        UInt = family.Unsigned
+        UData = UInt[16]
+        UData32 = UInt[32]
+
+        FPExpBV = family.BitVector[8]
+        FPFracBV = family.BitVector[7]
+
+        def bv2float(bv):
+            return BFloat.reinterpret_from_bv(bv)
+
+        @family.assemble(locals(), globals())
+        class fp_int8tobf16_unpack_high(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data) -> Data:
+
+                # We replace this
+                a_fpadd = in0
+
+                return Data(a_fpadd)
+
+        return fp_int8tobf16_unpack_high
+
+    CoreIR.add_instruction("float.int8tobf16_unpack_high", fp_int8tobf16_unpack_high_fc)
+
+    @family_closure
+    def fp_int8tobf16_unpack_low_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        BFloat = BFloat16_fc(family)
+        Data = family.BitVector[16]
+
+        @family.assemble(locals(), globals())
+        class fp_int8tobf16_unpack_low(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data) -> Data:
+
+                # We replace this
+                a_fpadd = in0
+
+                return Data(a_fpadd)
+
+        return fp_int8tobf16_unpack_low
+
+    CoreIR.add_instruction("float.int8tobf16_unpack_low", fp_int8tobf16_unpack_low_fc)
 
     return CoreIR
