@@ -50,11 +50,15 @@ def gen_CoreIRNodes(width):
             assert name in CoreIRNodes.coreir_modules
             assert CoreIRNodes.name_from_coreir(cmod) == name
 
-    CoreIRNodes.custom_nodes = ["coreir.neq", "commonlib.abs", "commonlib.mult_middle", "float.eq", "float.gt", "float.le",
-                                "float.ge", "float.lt", "float.max", "float.min", "float.div", "float_DW.fp_mul",
-                                "float_DW.fp_add", "float.sub", "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f",
-                                "fp_getfint", "fp_getffrac", "fp_cnvint2f", "float.exp", "float.mux", "float.ln",
-                                "f2int_pack", "int2f_unpack_high", "int2f_unpack_low", "float.bf16toint8_pack", "float.int8tobf16_unpack_high", "float.int8tobf16_unpack_low"]
+    CoreIRNodes.custom_nodes = ["coreir.neq", "commonlib.abs", "commonlib.mult_middle", # ALU ops
+                                "float.eq", "float.gt", "float.le", "float.ge", "float.lt", # FP instruction
+                                "float.max", "float.min", "float.div", "float_DW.fp_mul",
+                                "float_DW.fp_add", "float.sub", "float.exp", "float.mux",
+                                "float.ln", "float.bf16toint8_pack", "float.int8tobf16_unpack_high",
+                                "float.int8tobf16_unpack_low", "float.bit8_pack",
+                                "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f", "fp_getfint", # FPU ops
+                                "fp_getffrac", "fp_cnvint2f", "f2int_pack", "int2f_unpack_high", "int2f_unpack_low",
+                                "bit8_pack"]
 
     for name in CoreIRNodes.custom_nodes:
         if name not in CoreIRNodes.coreir_modules:
@@ -316,6 +320,19 @@ def gen_CoreIRNodes(width):
     sink_node = Output(low_unpack.select("out"), type=output_t)
 
     CoreIRNodes.custom_inline["float.int8tobf16_unpack_low"] = (Dag(sources=[source_node8], sinks=[sink_node]), [low_unpack])
+
+    ########### Definition of float.bit8_pack #########
+    input_t = Product.from_fields("Input", {"in0": BitVector[16], "in1": BitVector[16]})
+    output_t = Product.from_fields("Output", {"out": BitVector[16]})
+
+    source_node_bit8_pack = Input(iname="self", type=input_t)
+    in0 = source_node_bit8_pack.select("in0")
+    in1 = source_node_bit8_pack.select("in1")
+
+    bit8_pack = CoreIRNodes.dag_nodes["bit8_pack"](in0, in1, type=BitVector[16])
+    sink_node = Output(bit8_pack.select("out"), type=output_t)
+
+    CoreIRNodes.custom_inline["float.bit8_pack"] = (Dag(sources=[source_node_bit8_pack], sinks=[sink_node]), [bit8_pack])
 
     return CoreIRNodes
 

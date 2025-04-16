@@ -472,6 +472,27 @@ def gen_custom_ops_peak_CoreIR(width):
     CoreIR.add_instruction("int2f_unpack_low", int2f_unpack_low_fc)
 
     @family_closure
+    def bit8_pack_fc(family: AbstractFamily):
+        Data = family.BitVector[16]
+        BitVector = family.BitVector
+
+        @family.assemble(locals(), globals())
+        class bit8_pack(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, in1: Data) -> Data:
+                # Extract lower 8 bits from each 16-bit input
+                in0_low = in0[0:8]
+                in1_low = in1[0:8]
+
+                # Pack into single 16-bit value
+                packed = (BitVector[16](in0_low) << 8) | BitVector[16](in1_low)
+                return Data(packed)
+
+        return bit8_pack
+    CoreIR.add_instruction("bit8_pack", bit8_pack_fc)
+
+
+    @family_closure
     def fp_cnvexp2f_fc(family: AbstractFamily):
         BitVector = family.BitVector
         BFloat = BFloat16_fc(family)
@@ -1326,5 +1347,26 @@ def gen_custom_ops_peak_CoreIR(width):
         return fp_int8tobf16_unpack_low
 
     CoreIR.add_instruction("float.int8tobf16_unpack_low", fp_int8tobf16_unpack_low_fc)
+
+    @family_closure
+    def fp_bit8_pack_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        BFloat = BFloat16_fc(family)
+        Data = family.BitVector[16]
+
+        @family.assemble(locals(), globals())
+        class fp_bit8_pack(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, in1: Data) -> Data:
+                # Extract lower 8 bits from each 16-bit input
+                in0_low = in0[0:8]
+                in1_low = in1[0:8]
+
+                # Pack into single 16-bit value
+                packed = (BitVector[16](in0_low) << 8) | BitVector[16](in1_low)
+                return Data(packed)
+        return fp_bit8_pack
+
+    CoreIR.add_instruction("float.bit8_pack", fp_bit8_pack_fc)
 
     return CoreIR
