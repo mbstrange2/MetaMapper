@@ -55,6 +55,7 @@ def gen_rrules(pipelined=False):
         "abs": "commonlib.abs",
         "fp_exp": "float.exp",
         "fp_max": "float.max",
+        "fp_abs_max": "float.abs_max",
         "fp_div": "float.div",
         "fp_mux": "float.mux",
         "fp_mul": "float_DW.fp_mul",

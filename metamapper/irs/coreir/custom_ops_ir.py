@@ -1369,4 +1369,41 @@ def gen_custom_ops_peak_CoreIR(width):
 
     CoreIR.add_instruction("float.bit8_pack", fp_bit8_pack_fc)
 
+    @family_closure
+    def fp_abs_max_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        BFloat = BFloat16_fc(family)
+        Data = family.BitVector[16]
+        Bit = family.Bit
+
+        FPAdd = float_lib.const_rm(RoundingMode.RNE).Add_fc(family)
+
+        @family.assemble(locals(), globals())
+        class fp_abs_max(Peak):
+            def __init__(self):
+                self.Add: FPAdd = FPAdd()
+
+            @name_outputs(out=Data)
+            def __call__(self, in0 : Data, in1 : Data) -> Data:
+                # Clear sign bits to get absolute values
+                abs_in0 = in0 & BitVector[16](0x7FFF)
+                abs_in1 = in1 & BitVector[16](0x7FFF)
+
+                # Compute abs_in0 - abs_in1
+                abs_in1_neg = abs_in1 ^ (2 ** (16 - 1))
+                res = Data(self.Add(abs_in0, abs_in1_neg))
+                N = res[-1]
+
+                # Select the input with larger absolute value
+                if N:
+                    ret = abs_in1
+                else:
+                    ret = abs_in0
+
+                return ret
+
+        return fp_abs_max
+
+    CoreIR.add_instruction("float.abs_max", fp_abs_max_fc)
+
     return CoreIR

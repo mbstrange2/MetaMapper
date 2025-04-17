@@ -54,7 +54,7 @@ def gen_CoreIRNodes(width):
                                 "float.eq", "float.gt", "float.le", "float.ge", "float.lt", # FP instruction
                                 "float.max", "float.min", "float.div", "float_DW.fp_mul",
                                 "float_DW.fp_add", "float.sub", "float.exp", "float.mux",
-                                "float.ln", "float.bf16toint8_pack", "float.int8tobf16_unpack_high",
+                                "float.ln", "float.abs_max", "float.bf16toint8_pack", "float.int8tobf16_unpack_high",
                                 "float.int8tobf16_unpack_low", "float.bit8_pack",
                                 "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f", "fp_getfint", # FPU ops
                                 "fp_getffrac", "fp_cnvint2f", "f2int_pack", "int2f_unpack_high", "int2f_unpack_low",
