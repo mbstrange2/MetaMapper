@@ -54,11 +54,10 @@ def gen_CoreIRNodes(width):
                                 "float.eq", "float.gt", "float.le", "float.ge", "float.lt", # FP instruction
                                 "float.max", "float.min", "float.div", "float_DW.fp_mul",
                                 "float_DW.fp_add", "float.sub", "float.exp", "float.mux",
-                                "float.ln", "float.abs_max", "float.bf16toint8_pack", "float.int8tobf16_unpack_high",
-                                "float.int8tobf16_unpack_low", "float.bit8_pack",
+                                "float.ln", "float.abs_max", "float.bit8_unpack_high",
+                                "float.bit8_unpack_low", "float.bit8_pack",
                                 "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f", "fp_getfint", # FPU ops
-                                "fp_getffrac", "fp_cnvint2f", "f2int_pack", "int2f_unpack_high", "int2f_unpack_low",
-                                "bit8_pack"]
+                                "fp_getffrac", "fp_cnvint2f", "bit8_unpack_high", "bit8_unpack_low", "bit8_pack"]
 
     for name in CoreIRNodes.custom_nodes:
         if name not in CoreIRNodes.coreir_modules:
@@ -284,42 +283,29 @@ def gen_CoreIRNodes(width):
 
     CoreIRNodes.custom_inline["coreir.neq"] = (Dag(sources=[source_node4], sinks=[sink_node]), [eq])
 
-    ######### Definition of float.bf16toint8_pack #########
-    input_t = Product.from_fields("Input", {f"in{i}": BitVector[16] for i in range(2)})
-    output_t = Product.from_fields("Output", {"out": BitVector[16]})
-
-    source_node5 = Input(iname="self", type=input_t)
-    in0 = source_node5.select("in0")
-    in1 = source_node5.select("in1")
-
-    bf16toint8_pack = CoreIRNodes.dag_nodes["f2int_pack"](in0, in1, type=BitVector[16])
-    sink_node = Output(bf16toint8_pack.select("out"), type=output_t)
-
-    CoreIRNodes.custom_inline["float.bf16toint8_pack"] = (Dag(sources=[source_node5], sinks=[sink_node]), [bf16toint8_pack])
-
-    ######### Definition of float.int8tobf16_unpack_high #########
+    ######### Definition of float.bit8_unpack_high #########
     input_t = Product.from_fields("Input", {"in0": BitVector[16]})
     output_t = Product.from_fields("Output", {"out": BitVector[16]})
 
-    source_node7 = Input(iname="self", type=input_t)
-    in0 = source_node7.select("in0")
+    source_node_bit8_unpack_high = Input(iname="self", type=input_t)
+    in0 = source_node_bit8_unpack_high.select("in0")
 
-    high_unpack = CoreIRNodes.dag_nodes["int2f_unpack_high"](in0)
+    high_unpack = CoreIRNodes.dag_nodes["bit8_unpack_high"](in0)
     sink_node = Output(high_unpack.select("out"), type=output_t)
 
-    CoreIRNodes.custom_inline["float.int8tobf16_unpack_high"] = (Dag(sources=[source_node7], sinks=[sink_node]), [high_unpack])
+    CoreIRNodes.custom_inline["float.bit8_unpack_high"] = (Dag(sources=[source_node_bit8_unpack_high], sinks=[sink_node]), [high_unpack])
 
-    ######### Definition of float.int8tobf16_unpack_low #########
+    ######### Definition of float.bit8_unpack_low #########
     input_t = Product.from_fields("Input", {"in0": BitVector[16]})
     output_t = Product.from_fields("Output", {"out": BitVector[16]})
 
-    source_node8 = Input(iname="self", type=input_t)
-    in0 = source_node8.select("in0")
+    source_node_bit8_unpack_low = Input(iname="self", type=input_t)
+    in0 = source_node_bit8_unpack_low.select("in0")
 
-    low_unpack = CoreIRNodes.dag_nodes["int2f_unpack_low"](in0)
+    low_unpack = CoreIRNodes.dag_nodes["bit8_unpack_low"](in0)
     sink_node = Output(low_unpack.select("out"), type=output_t)
 
-    CoreIRNodes.custom_inline["float.int8tobf16_unpack_low"] = (Dag(sources=[source_node8], sinks=[sink_node]), [low_unpack])
+    CoreIRNodes.custom_inline["float.bit8_unpack_low"] = (Dag(sources=[source_node_bit8_unpack_low], sinks=[sink_node]), [low_unpack])
 
     ########### Definition of float.bit8_pack #########
     input_t = Product.from_fields("Input", {"in0": BitVector[16], "in1": BitVector[16]})

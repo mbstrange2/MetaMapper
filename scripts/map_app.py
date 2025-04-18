@@ -63,9 +63,8 @@ def gen_rrules(pipelined=False):
         "fp_le": "float.le",
         "fp_eq": "float.eq",
         "fp_ln": "float.ln",
-        "fp_bf16toint8_pack": "float.bf16toint8_pack",
-        "fp_int8tobf16_unpack_high": "float.int8tobf16_unpack_high",
-        "fp_int8tobf16_unpack_low": "float.int8tobf16_unpack_low",
+        "fp_bit8_unpack_high": "float.bit8_unpack_high",
+        "fp_bit8_unpack_low": "float.bit8_unpack_low",
         "fp_bit8_pack": "float.bit8_pack"
     }
 
