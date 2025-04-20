@@ -55,9 +55,10 @@ def gen_CoreIRNodes(width):
                                 "float.max", "float.min", "float.div", "float_DW.fp_mul",
                                 "float_DW.fp_add", "float.sub", "float.exp", "float.mux",
                                 "float.ln", "float.abs_max", "float.bit8_unpack_high",
-                                "float.bit8_unpack_low", "float.bit8_pack",
+                                "float.bit8_unpack_low", "float.bit8_pack", "float.get_shared_exp",
                                 "fp_getmant", "fp_addiexp", "fp_subexp", "fp_cnvexp2f", "fp_getfint", # FPU ops
-                                "fp_getffrac", "fp_cnvint2f", "bit8_unpack_high", "bit8_unpack_low", "bit8_pack"]
+                                "fp_getffrac", "fp_cnvint2f", "bit8_unpack_high", "bit8_unpack_low", "bit8_pack",
+                                "get_shared_exp"]
 
     for name in CoreIRNodes.custom_nodes:
         if name not in CoreIRNodes.coreir_modules:
@@ -319,6 +320,18 @@ def gen_CoreIRNodes(width):
     sink_node = Output(bit8_pack.select("out"), type=output_t)
 
     CoreIRNodes.custom_inline["float.bit8_pack"] = (Dag(sources=[source_node_bit8_pack], sinks=[sink_node]), [bit8_pack])
+
+    ######### Definition of float.get_shared_exp #########
+    input_t = Product.from_fields("Input", {"in0": BitVector[16]})
+    output_t = Product.from_fields("Output", {"out": BitVector[16]})
+
+    source_node_get_shared_exp = Input(iname="self", type=input_t)
+    in0 = source_node_get_shared_exp.select("in0")
+
+    shared_exp = CoreIRNodes.dag_nodes["get_shared_exp"](in0)
+    sink_node = Output(shared_exp.select("out"), type=output_t)
+
+    CoreIRNodes.custom_inline["float.get_shared_exp"] = (Dag(sources=[source_node_get_shared_exp], sinks=[sink_node]), [shared_exp])
 
     return CoreIRNodes
 

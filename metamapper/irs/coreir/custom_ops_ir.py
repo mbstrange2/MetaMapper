@@ -323,6 +323,27 @@ def gen_custom_ops_peak_CoreIR(width):
         return bit8_pack
     CoreIR.add_instruction("bit8_pack", bit8_pack_fc)
 
+    @family_closure
+    def get_shared_exp_fc(family: AbstractFamily):
+        Data16 = family.BitVector[16]
+        Data8  = family.BitVector[8]
+
+        @family.assemble(locals(), globals())
+        class get_shared_exp(Peak):
+            @name_outputs(out=Data16)
+            def __call__(self, in0: Data16) -> Data16:
+                exp = in0[7:15]
+                if exp == Data8(0):
+                    shared = Data8(127)
+                else:
+                    shared = exp - Data8(6)
+                return Data16(shared.zext(16))
+
+        return get_shared_exp
+
+    CoreIR.add_instruction("get_shared_exp", get_shared_exp_fc)
+
+
 
     @family_closure
     def fp_cnvexp2f_fc(family: AbstractFamily):
@@ -1189,5 +1210,26 @@ def gen_custom_ops_peak_CoreIR(width):
         return fp_abs_max
 
     CoreIR.add_instruction("float.abs_max", fp_abs_max_fc)
+
+    @family_closure
+    def fp_get_shared_exp_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        Data = BitVector[16]
+        Exp8 = BitVector[8]
+
+        @family.assemble(locals(), globals())
+        class fp_get_shared_exp(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data) -> Data:
+                exp = in0[7:15]
+                if exp == Exp8(0):
+                    shared = Exp8(127)
+                else:
+                    shared = exp - Exp8(6)
+                return Data(shared.zext(16))
+
+        return fp_get_shared_exp
+
+    CoreIR.add_instruction("float.get_shared_exp", fp_get_shared_exp_fc)
 
     return CoreIR
