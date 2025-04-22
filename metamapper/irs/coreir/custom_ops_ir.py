@@ -343,7 +343,46 @@ def gen_custom_ops_peak_CoreIR(width):
 
     CoreIR.add_instruction("get_shared_exp", get_shared_exp_fc)
 
+    @family_closure
+    def e8m0_quant_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        SInt = family.Signed
+        UInt = family.Unsigned[16]
+        UInt8 = family.Unsigned[8]
+        Data = family.BitVector[16]
+        @family.assemble(locals(), globals())
+        class e8m0_quant(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, in1: Data) -> Data:
+                signa = BitVector[16](in0 & 0x8000)
+                manta = BitVector[16]((in0 & 0x7F)) | 0x80
+                expa0 = UInt(in0)[7:15]
+                shared_exp = UInt8(in1[0:8])
+                biased_exp0 = SInt[9](expa0.zext(1))
+                biased_shared_exp = SInt[9](shared_exp.zext(1))
+                # Note: biased_shared_exp already contains bias of 127
+                unbiased_quant_exp0 = SInt[9](biased_exp0 - biased_shared_exp)
+                if unbiased_quant_exp0 < 0:
+                    manta_shift0 = BitVector[23](manta) >> BitVector[23](-unbiased_quant_exp0)
+                else:
+                    manta_shift0 = BitVector[23](manta) << BitVector[23](unbiased_quant_exp0)
 
+                # Extract the rounding bit
+                rounding_bit = (manta_shift0 >> BitVector[23](6)) & BitVector[23](1)
+                # Apply rounding by adding the rounding bit to the truncated result
+                unsigned_res0 = BitVector[23]((manta_shift0 >> BitVector[23](7)) + rounding_bit)
+
+                unsigned_res = BitVector[8](unsigned_res0[0:8])
+                if signa == 0x8000:
+                    signed_res = BitVector[16](-SInt[8](unsigned_res).zext(8))
+                else:
+                    signed_res = BitVector[16](SInt[8](unsigned_res).zext(8))
+
+                res = signed_res
+                return Data(res)
+
+        return e8m0_quant
+    CoreIR.add_instruction("e8m0_quant", e8m0_quant_fc)
 
     @family_closure
     def fp_cnvexp2f_fc(family: AbstractFamily):
@@ -1231,5 +1270,22 @@ def gen_custom_ops_peak_CoreIR(width):
         return fp_get_shared_exp
 
     CoreIR.add_instruction("float.get_shared_exp", fp_get_shared_exp_fc)
+
+    @family_closure
+    def fp_e8m0_quant_fc(family: AbstractFamily):
+        BitVector = family.BitVector
+        SInt = family.Signed
+        UInt = family.Unsigned[16]
+        UInt8 = family.Unsigned[8]
+        Data = family.BitVector[16]
+        @family.assemble(locals(), globals())
+        class fp_e8m0_quant(Peak):
+            @name_outputs(out=Data)
+            def __call__(self, in0: Data, in1: Data) -> Data:
+                # we replace this
+                fp_add = in0 + in1
+                return Data(fp_add)
+        return fp_e8m0_quant
+    CoreIR.add_instruction("float.e8m0_quant", fp_e8m0_quant_fc)
 
     return CoreIR

@@ -70,7 +70,8 @@ def gen_rrules(pipelined=False):
         "fp_bit8_unpack_high": "float.bit8_unpack_high",
         "fp_bit8_unpack_low": "float.bit8_unpack_low",
         "fp_bit8_pack": "float.bit8_pack",
-        "fp_get_shared_exp": "float.get_shared_exp"
+        "fp_get_shared_exp": "float.get_shared_exp",
+        "fp_e8m0_quant": "float.e8m0_quant"
     }
 
     for idx, rrule in enumerate(rrule_files):
