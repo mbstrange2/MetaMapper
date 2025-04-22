@@ -51,6 +51,7 @@ def gen_rrules(pipelined=False):
         "abs": "commonlib.abs",
         "fp_exp": "float.exp",
         "fp_max": "float.max",
+        "fp_abs_max": "float.abs_max",
         "fp_div": "float.div",
         "fp_mux": "float.mux",
         "fp_mul": "float_DW.fp_mul",
@@ -62,9 +63,11 @@ def gen_rrules(pipelined=False):
         "fp_le": "float.le",
         "fp_eq": "float.eq",
         "fp_ln": "float.ln",
-        "fp_bf16toint8_pack": "float.bf16toint8_pack",
-        "fp_int8tobf16_unpack_high": "float.int8tobf16_unpack_high",
-        "fp_int8tobf16_unpack_low": "float.int8tobf16_unpack_low"
+        "fp_bit8_unpack_high": "float.bit8_unpack_high",
+        "fp_bit8_unpack_low": "float.bit8_unpack_low",
+        "fp_bit8_pack": "float.bit8_pack",
+        "fp_get_shared_exp": "float.get_shared_exp",
+        "fp_e8m0_quant": "float.e8m0_quant"
     }
 
     for idx, rrule in enumerate(rrule_files):
