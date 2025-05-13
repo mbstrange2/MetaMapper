@@ -7,6 +7,7 @@ from ...node import Nodes, Constant, DagNode, Select
 from .custom_ops_ir import gen_custom_ops_peak_CoreIR
 from hwtypes import SMTFPVector, FPVector, RoundingMode
 import magma
+import os
 
 def gen_peak_CoreIR(width):
     DATAWIDTH = 16
@@ -36,18 +37,30 @@ def gen_peak_CoreIR(width):
 
     CoreIR.add_instruction("cgralib.Pond", pond_fc)
 
-    @family_closure
-    def rom_fc(family: AbstractFamily):
-        Data = family.BitVector[width]
-        Bit = family.Bit
-        class rom(Peak):
-            @name_outputs(rdata=Data)
-            def __call__(self, raddr: Data, ren: Bit) -> Data:
-                return Data(0)
-        return rom
+    dense_ready_valid = "DENSE_READY_VALID" in os.environ and os.environ.get("DENSE_READY_VALID") == "1"
+    if dense_ready_valid:
+        @family_closure
+        def rom_fc(family: AbstractFamily):
+            Data = family.BitVector[width]
+            class rom(Peak):
+                @name_outputs(rdata=Data)
+                def __call__(self, raddr: Data) -> Data:
+                    return Data(0)
+            return rom
 
-    CoreIR.add_instruction("memory.rom2", rom_fc)
-    
+        CoreIR.add_instruction("memory.rom2", rom_fc)
+    else:
+        @family_closure
+        def rom_fc(family: AbstractFamily):
+            Data = family.BitVector[width]
+            Bit = family.Bit
+            class rom(Peak):
+                @name_outputs(rdata=Data)
+                def __call__(self, raddr: Data, ren: Bit) -> Data:
+                    return Data(0)
+            return rom
+        CoreIR.add_instruction("memory.rom2", rom_fc)
+
     @family_closure
     def abs_fc(family: AbstractFamily):
         Data = family.BitVector[width]
