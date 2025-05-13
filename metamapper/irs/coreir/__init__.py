@@ -8,6 +8,7 @@ from hwtypes import BitVector, Product, strip_modifiers, Bit
 from peak import family
 import struct
 import math
+import os
 
 def strip_trailing(op):
     if op[-1] == "_":
@@ -93,24 +94,47 @@ def gen_CoreIRNodes(width):
         num_children = 3
         type = Product.from_fields("Output",{"data_out_0":BitVector[16], "data_out_1":BitVector[16], "stencil_valid":BitVector[1]})
 
-    class FPRom(DagNode):
-        def __init__(self, raddr, ren, *, init, iname):
-            super().__init__(raddr, ren, init=init, iname=iname)
-            self.modparams=()
-        @property
-        def attributes(self):
-            return ("init", "iname")
+    # Detect whether in RV or static HW
+    dense_ready_valid = "DENSE_READY_VALID" in os.environ and os.environ.get("DENSE_READY_VALID") == "1"
+    if dense_ready_valid:
+        # We don't need the const PE to feed 1b rd_en constant
+        class FPRom(DagNode):
+            def __init__(self, raddr, *, init, iname):
+                super().__init__(raddr, init=init, iname=iname)
+                self.modparams=()
+            @property
+            def attributes(self):
+                return ("init", "iname")
 
-        #Hack to get correct port name
-        def select(self, field, original=None):
-            self._selects.add("rdata")
-            return Select(self, field="rdata",type=BitVector[16])
+            #Hack to get correct port name
+            def select(self, field, original=None):
+                self._selects.add("rdata")
+                return Select(self, field="rdata",type=BitVector[16])
 
-        nodes = CoreIRNodes
-        static_attributes = {}
-        node_name = "memory.fprom2"
-        num_children = 2
-        type = Product.from_fields("Output",{"rdata":BitVector[16]})
+            nodes = CoreIRNodes
+            static_attributes = {}
+            node_name = "memory.fprom2"
+            num_children = 1
+            type = Product.from_fields("Output",{"rdata":BitVector[16]})
+    else:
+        class FPRom(DagNode):
+            def __init__(self, raddr, ren, *, init, iname):
+                super().__init__(raddr, ren, init=init, iname=iname)
+                self.modparams=()
+            @property
+            def attributes(self):
+                return ("init", "iname")
+
+            #Hack to get correct port name
+            def select(self, field, original=None):
+                self._selects.add("rdata")
+                return Select(self, field="rdata",type=BitVector[16])
+
+            nodes = CoreIRNodes
+            static_attributes = {}
+            node_name = "memory.fprom2"
+            num_children = 2
+            type = Product.from_fields("Output",{"rdata":BitVector[16]})
 
 
     def float2bfbin(fnum):
@@ -166,7 +190,10 @@ def gen_CoreIRNodes(width):
     en_const = Constant(value=Bit(1), type=Bit)
     en_const_dag = CoreIRNodes.dag_nodes["corebit.const"](en_const)
 
-    rom = FPRom(get_mant.select("out"), en_const_dag.select("out"), init=div_rom_init, iname="fpdivrom")
+    if dense_ready_valid:
+        rom = FPRom(get_mant.select("out"), init=div_rom_init, iname="fpdivrom")
+    else:
+        rom = FPRom(get_mant.select("out"), en_const_dag.select("out"), init=div_rom_init, iname="fpdivrom")
     sub_exp = CoreIRNodes.dag_nodes["fp_subexp"](rom.select("rdata"), in1)
     mult = CoreIRNodes.dag_nodes["float_DW.fp_mul"](sub_exp.select("out"), in0)
     sink_node = Output(mult.select("out"), type=output_t)
@@ -208,7 +235,10 @@ def gen_CoreIRNodes(width):
     # rom_idx = CoreIRNodes.dag_nodes["coreir.and_"](get_frac.select("out"), and_const_dag.select("out"))
     # rom = FPRom(rom_idx.select("out"), en_const_dag.select("out"), init=exp_rom_init, iname="fpexprom")
 
-    rom = FPRom(get_frac.select("out"), en_const_dag.select("out"), init=exp_rom_init, iname="fpexprom")
+    if dense_ready_valid:
+        rom = FPRom(get_frac.select("out"), init=exp_rom_init, iname="fpexprom")
+    else:
+        rom = FPRom(get_frac.select("out"), en_const_dag.select("out"), init=exp_rom_init, iname="fpexprom")
 
     add_exp = CoreIRNodes.dag_nodes["fp_addiexp"](rom.select("rdata"), get_int.select("out"))
 
@@ -245,7 +275,11 @@ def gen_CoreIRNodes(width):
     en_const = Constant(value=Bit(1), type=Bit)
     en_const_dag = CoreIRNodes.dag_nodes["corebit.const"](en_const)
 
-    ln_rom = FPRom(get_mant.select("out"), en_const_dag.select("out"), init=ln_rom_init, iname="fplnrom")
+    if dense_ready_valid:
+        ln_rom = FPRom(get_mant.select("out"), init=ln_rom_init, iname="fplnrom")
+    else:
+        ln_rom = FPRom(get_mant.select("out"), en_const_dag.select("out"), init=ln_rom_init, iname="fplnrom")
+
     ln_add = CoreIRNodes.dag_nodes["float_DW.fp_add"](mul_ln2.select("out"), ln_rom.select("rdata"))
 
     sink_node = Output(ln_add.select("out"), type=output_t)

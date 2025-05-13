@@ -217,7 +217,7 @@ class Loader:
         if mref.ref_name == "coreir.const":
             width = mref.generator_args["width"].value
             value = inst.config["value"].value
-            
+
             const_node = create_bv_const(width, value)
         elif mref.ref_name == "corebit.const":
             value = inst.config["value"].value
@@ -291,7 +291,7 @@ class Loader:
                 adt = ctype_to_adt(w.type)
                 self.unique += 1
                 return Combine(*children, iname=f"UC{self.unique}", type=adt)
-                
+
 
             # inst is named w in this function
             inst = w
@@ -319,7 +319,7 @@ class Loader:
                 node = RegisterSink(*children, type=sink_adt)
 
             if inst.module.name == "rom2":
-                node = node_t(*children, init=inst.config["init"], iname=iname)
+                node = node_t(children[0], init=inst.config["init"], iname=iname)
             elif sink_t is None: #Normal instance
                 node = node_t(*children, iname=iname)
                 self.node_map[inst] = node
@@ -398,38 +398,70 @@ class Loader:
                 drivers.append(port)
         return drivers
 
+dense_ready_valid = "DENSE_READY_VALID" in os.environ and os.environ.get("DENSE_READY_VALID") == "1"
+if dense_ready_valid:
+    @family_closure
+    def rom_fc(family: AbstractFamily):
+        Data = family.BitVector[16]
+        class rom(Peak):
+            @name_outputs(rdata=Data)
+            def __call__(self, raddr: Data) -> Data:
+                return Data(0)
+        return rom
 
-@family_closure
-def rom_fc(family: AbstractFamily):
-    Data = family.BitVector[16]
-    Bit = family.Bit
-    class rom(Peak):
-        @name_outputs(rdata=Data)
-        def __call__(self, raddr: Data, ren: Bit) -> Data:
-            return Data(0)
-    return rom
+    def gen_rom(CoreIRNodes):
+        class Rom(DagNode):
+            def __init__(self, raddr, *, init, iname):
+                super().__init__(raddr, init=init, iname=iname)
+                self.modparams=()
 
-def gen_rom(CoreIRNodes):
-    class Rom(DagNode):
-        def __init__(self, raddr, ren, *, init, iname):
-            super().__init__(raddr, ren, init=init, iname=iname)
-            self.modparams=()
+            @property
+            def attributes(self):
+                return ("init", "iname")
 
-        @property
-        def attributes(self):
-            return ("init", "iname")
+            #Hack to get correct port name
+            def select(self, field, original=None):
+                self._selects.add("rdata")
+                return Select(self, field="rdata",type=BitVector[16])
 
-        #Hack to get correct port name
-        def select(self, field, original=None):
-            self._selects.add("rdata")
-            return Select(self, field="rdata",type=BitVector[16])
+            nodes = CoreIRNodes
+            static_attributes = {}
+            node_name = "memory.rom2"
+            num_children = 1
+            type = Product.from_fields("Output",{"rdata":BitVector[16]})
+        return Rom
+else:
+    @family_closure
+    def rom_fc(family: AbstractFamily):
+        Data = family.BitVector[16]
+        Bit = family.Bit
+        class rom(Peak):
+            @name_outputs(rdata=Data)
+            def __call__(self, raddr: Data, ren: Bit) -> Data:
+                return Data(0)
+        return rom
 
-        nodes = CoreIRNodes
-        static_attributes = {}
-        node_name = "memory.rom2"
-        num_children = 2
-        type = Product.from_fields("Output",{"rdata":BitVector[16]})
-    return Rom
+    def gen_rom(CoreIRNodes):
+        class Rom(DagNode):
+            def __init__(self, raddr, ren, *, init, iname):
+                super().__init__(raddr, ren, init=init, iname=iname)
+                self.modparams=()
+
+            @property
+            def attributes(self):
+                return ("init", "iname")
+
+            #Hack to get correct port name
+            def select(self, field, original=None):
+                self._selects.add("rdata")
+                return Select(self, field="rdata",type=BitVector[16])
+
+            nodes = CoreIRNodes
+            static_attributes = {}
+            node_name = "memory.rom2"
+            num_children = 2
+            type = Product.from_fields("Output",{"rdata":BitVector[16]})
+        return Rom
 
 
 #Takes in a coreir module and translates it into a dag
@@ -457,7 +489,7 @@ def coreir_to_dag(nodes: Nodes, cmod: coreir.Module, inline=True, archnodes=None
                 if is_const(inst.module) or is_reg(inst.module):
                     continue
                 node_name = nodes.name_from_coreir(inst.module)
-                
+
                 # print(inst.module.name, node_name)
                 if node_name is None:
                     to_inline.append(inst)
