@@ -318,8 +318,13 @@ class Loader:
                 assert sink_adt is not None
                 node = RegisterSink(*children, type=sink_adt)
 
+            dense_ready_valid = "DENSE_READY_VALID" in os.environ and os.environ.get("DENSE_READY_VALID") == "1"
             if inst.module.name == "rom2":
-                node = node_t(children[0], init=inst.config["init"], iname=iname)
+                if dense_ready_valid:
+                    # We don't need to pass in ren, so just get the first child
+                    node = node_t(children[0], init=inst.config["init"], iname=iname)
+                else:
+                    node = node_t(*children, init=inst.config["init"], iname=iname)
             elif sink_t is None: #Normal instance
                 node = node_t(*children, iname=iname)
                 self.node_map[inst] = node
