@@ -1019,7 +1019,8 @@ class PipelinePEs(Transformer):
             # Check if the metadata is only num_input_fifo, num_output_fifo
             elif not filter_fifo or not ((isinstance(ports, dict)) and ("num_input_fifo" in ports.keys() and "num_output_fifo" in ports.keys() and (len(ports.keys()) == 2))):
                 for port_idx, child in enumerate(node.children()):
-                    if child.node_name == "Select":
+                    # Add guard to ensure port_idx is in ports
+                    if child.node_name == "Select" and port_idx in ports:
                         self.turn_on_pipeline_reg(node.children()[0], ports[port_idx][0])
 
         return node
