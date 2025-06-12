@@ -16,8 +16,8 @@ import hwtypes as ht
 from graphviz import Digraph
 from collections import defaultdict
 import pono
-import smt_switch.pysmt_frontend as fe
-import smt_switch.primops as switch_ops
+# import smt_switch.pysmt_frontend as fe
+# import smt_switch.primops as switch_ops
 from peak.mapper.utils import rebind_type
 import smt_switch as ss
 
@@ -346,48 +346,53 @@ def check_sat(solver, bbox_types_to_ins_outs, i0):
     return solver.get_value(i0)
 
 
+# NOTE: 06/12/2025
+# Commenting out this function and returning None as it depends on pono, which is currently
+# incompatible with the python version used in the rest of the codebase. Putting as TODO to
+# resolve this later.
 def prove_equal(dag0: Dag, dag1: Dag, cycles, solver_name="bitwuzla"):
-    if dag0.input.type != dag1.input.type:
-        raise ValueError("Input types are not the same")
-    if dag0.output.type != dag1.output.type:
-        raise ValueError("Output types are not the same")
+    return None
+    # if dag0.input.type != dag1.input.type:
+    #     raise ValueError("Input types are not the same")
+    # if dag0.output.type != dag1.output.type:
+    #     raise ValueError("Output types are not the same")
 
-    i0, o0, regs0, bboxes0 = SMT().get(dag0)
-    i1, o1, regs1, bboxes1 = SMT().get(dag1)
+    # i0, o0, regs0, bboxes0 = SMT().get(dag0)
+    # i1, o1, regs1, bboxes1 = SMT().get(dag1)
 
-    if regs0:
-        raise ValueError(f"Unmapped dag should not have registers: {regs0}")
+    # if regs0:
+    #     raise ValueError(f"Unmapped dag should not have registers: {regs0}")
 
-    s = fe.Solver(solver_name)
-    solver = s.solver
-    convert = s.converter.convert
+    # s = fe.Solver(solver_name)
+    # solver = s.solver
+    # convert = s.converter.convert
 
-    i0, o0, bboxes0 = pysmt_to_pono(i0, o0, [], solver, convert, 0, bboxes0)
-    i1, o1, bboxes1 = pysmt_to_pono(i1, o1, regs1, solver, convert, cycles, bboxes1)
+    # i0, o0, bboxes0 = pysmt_to_pono(i0, o0, [], solver, convert, 0, bboxes0)
+    # i1, o1, bboxes1 = pysmt_to_pono(i1, o1, regs1, solver, convert, cycles, bboxes1)
 
-    bbox_types_to_ins_outs = bboxes0
-    for k, v in bboxes1.items():
-        if k in bbox_types_to_ins_outs:
-            bbox_types_to_ins_outs[k] += v
-        else:
-            bbox_types_to_ins_outs[k] = v
+    # bbox_types_to_ins_outs = bboxes0
+    # for k, v in bboxes1.items():
+    #     if k in bbox_types_to_ins_outs:
+    #         bbox_types_to_ins_outs[k] += v
+    #     else:
+    #         bbox_types_to_ins_outs[k] = v
 
-    for idx, (k, v) in enumerate(bbox_types_to_ins_outs.items()):
-        bvs = v[0][0][0].get_sort()
-        func = solver.make_sort(ss.sortkinds.FUNCTION, [bvs, bvs, bvs])
-        f = solver.make_symbol(f"bb{idx}", func)
-        for (ins, outs) in v:
-            func_form = solver.make_term(switch_ops.Apply, f, ins[0], ins[1])
-            solver.assert_formula(
-                solver.make_term(switch_ops.Equal, outs[0], func_form)
-            )
+    # for idx, (k, v) in enumerate(bbox_types_to_ins_outs.items()):
+    #     bvs = v[0][0][0].get_sort()
+    #     func = solver.make_sort(ss.sortkinds.FUNCTION, [bvs, bvs, bvs])
+    #     f = solver.make_symbol(f"bb{idx}", func)
+    #     for (ins, outs) in v:
+    #         func_form = solver.make_term(switch_ops.Apply, f, ins[0], ins[1])
+    #         solver.assert_formula(
+    #             solver.make_term(switch_ops.Equal, outs[0], func_form)
+    #         )
 
-    solver.assert_formula(solver.make_term(switch_ops.Equal, i0, i1))
-    solver.assert_formula(
-        solver.make_term(switch_ops.Not, solver.make_term(switch_ops.Equal, o0, o1))
-    )
+    # solver.assert_formula(solver.make_term(switch_ops.Equal, i0, i1))
+    # solver.assert_formula(
+    #     solver.make_term(switch_ops.Not, solver.make_term(switch_ops.Equal, o0, o1))
+    # )
 
-    return check_sat(solver, bbox_types_to_ins_outs, i0)
+    # return check_sat(solver, bbox_types_to_ins_outs, i0)
 
 
 def _get_aadt(T):
