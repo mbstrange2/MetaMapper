@@ -43,7 +43,7 @@ def gen_rrules(pipelined=False):
     rrules = []
     ops = []
 
-    rrule_files = glob.glob(f"{lassen_location}/lassen/rewrite_rules/*.json")
+    rrule_files = sorted(glob.glob(f"{lassen_location}/lassen/rewrite_rules/*.json"))
 
     # Can't have a '.' in the name of the rule since they are files
     custom_rule_names = {
