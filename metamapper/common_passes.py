@@ -1,3 +1,4 @@
+from metamapper.data_width import data_width
 from collections import OrderedDict
 
 from graphviz import Digraph
@@ -98,7 +99,7 @@ class Constant2CoreIRConstant(Transformer):
         self.nodes = nodes
 
     def visit_Constant(self, node: Constant):
-        if node.type == ht.BitVector[16]:
+        if node.type == ht.BitVector[data_width()]:
             node_t = self.nodes.dag_nodes["coreir.const"]
         elif node.type == ht.Bit:
             node_t = self.nodes.dag_nodes["corebit.const"]
@@ -967,7 +968,7 @@ class ConstantPacking(Transformer):
                                 new_children[0], child_.child.value, ports[port_idx][0]
                             ):
                                 new_children[port_idx] = Constant(
-                                    type=ht.BitVector[16], value=Unbound
+                                    type=ht.BitVector[data_width()], value=Unbound
                                 )
             node.set_children(*new_children)
         return node

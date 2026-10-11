@@ -6,7 +6,16 @@ import json
 from pathlib import Path
 import delegator
 
-from lassen import PE_fc as lassen_fc
+from lassen import gen_PE_fc
+from metamapper.data_width import data_width
+
+
+def pe_and_rules():
+    """The lassen PE at the CGRA data width (16 -> lassen's PE_fc; gen_PE_fc is cached, so
+    the rules' arch is garnet's pe_fc object) and the package of its rewrite rules."""
+    width = data_width()
+    return gen_PE_fc(width), ('rewrite_rules' if width == 16 else f'rewrite_rules_w{width}')
+
 from metamapper.irs.coreir import gen_CoreIRNodes
 import metamapper.coreir_util as cutil
 import metamapper.peak_util as putil
@@ -46,8 +55,9 @@ def gen_rrules(pipelined=False):
     mapping_funcs = []
     rrules = []
     ops = []
+    lassen_fc, RULES_PKG = pe_and_rules()
 
-    rrule_files = glob.glob(f"{lassen_location}/lassen/rewrite_rules/*.json")
+    rrule_files = glob.glob(f"{lassen_location}/lassen/{RULES_PKG}/*.json")
 
     # Can't have a '.' in the name of the rule since they are files
     custom_rule_names = {
@@ -80,7 +90,7 @@ def gen_rrules(pipelined=False):
             ops.append(custom_rule_names[rule_name])
         else:
             ops.append(rule_name)
-        peak_eq = importlib.import_module(f"lassen.rewrite_rules.{rule_name}")
+        peak_eq = importlib.import_module(f"lassen.{RULES_PKG}.{rule_name}")
         ir_fc = getattr(peak_eq, rule_name + "_fc")
         mapping_funcs.append(ir_fc)
 
@@ -118,7 +128,7 @@ def map_design_top(app_name, nodes, dag):
 
     pipelined = not ("PIPELINED" in os.environ and os.environ["PIPELINED"] == '0')
 
-    CoreIRNodes = gen_CoreIRNodes(16)
+    CoreIRNodes = gen_CoreIRNodes(data_width())
 
     rrules, ops = gen_rrules()
 

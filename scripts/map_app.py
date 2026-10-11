@@ -6,7 +6,11 @@ import json
 from pathlib import Path
 import delegator
 
-from lassen import PE_fc as lassen_fc
+from lassen import gen_PE_fc
+from metamapper.data_width import data_width
+DATA_WIDTH = data_width()  # the lake collateral's data_width (LAKE_COLLATERAL_JSON_MEM), else 16
+lassen_fc = gen_PE_fc(DATA_WIDTH)  # 16 -> lassen's PE_fc
+RULES_PKG = 'rewrite_rules' if DATA_WIDTH == 16 else f'rewrite_rules_w{DATA_WIDTH}'
 from metamapper.irs.coreir import gen_CoreIRNodes
 import metamapper.coreir_util as cutil
 import metamapper.peak_util as putil
@@ -28,12 +32,39 @@ class _ArchCycles:
 
 
 lassen_location = os.path.join(Path(__file__).parent.parent.parent.resolve(), "lassen")
-lassen_header = os.path.join(
-    Path(__file__).parent.parent.resolve(), "libs/lassen_header.json"
-)
+libs_dir = os.path.join(Path(__file__).parent.parent.resolve(), "libs")
 
 
-def gen_rrules(pipelined=False):
+# Data ports of the IO / MEM / pond headers clockwork and garnet load: one CGRA data word
+_HEADER_DATA_PORTS = {
+    "io_header.json": ("in", "out"),
+    "pond_header.json": ("data_in_pond_0", "O0"),
+    "mem_header.json": ("input_width_16_num_0", "input_width_16_num_1", "input_width_16_num_2",
+                        "input_width_16_num_3", "O0", "O1"),
+}
+
+
+def set_header_data_width(width, header_dir):
+    """Write the IO / MEM / pond headers with `width`-bit data ports into header_dir (the
+    app's bin/, where clockwork and garnet read them). libs/ is never written, so compiles
+    at different widths can run side by side."""
+    for name, ports in _HEADER_DATA_PORTS.items():
+        path = os.path.join(header_dir, name)
+        with open(path if os.path.exists(path) else os.path.join(libs_dir, name)) as f:
+            hdr = json.load(f)
+        changed = False
+        for ns in hdr["namespaces"].values():
+            for mod in ns.get("modules", {}).values():
+                for port, t in mod["type"][1]:
+                    if port in ports and isinstance(t, list) and t[0] == "Array" and t[1] != width:
+                        t[1] = width
+                        changed = True
+        if changed or not os.path.exists(path):
+            with open(path, "w") as f:
+                json.dump(hdr, f)
+
+
+def gen_rrules(lassen_header, pipelined=False):
 
     c = CoreIRContext()
     cmod = putil.peak_to_coreir(lassen_fc)
@@ -43,7 +74,7 @@ def gen_rrules(pipelined=False):
     rrules = []
     ops = []
 
-    rrule_files = glob.glob(f"{lassen_location}/lassen/rewrite_rules/*.json")
+    rrule_files = glob.glob(f"{lassen_location}/lassen/{RULES_PKG}/*.json")
 
     # Can't have a '.' in the name of the rule since they are files
     custom_rule_names = {
@@ -76,7 +107,7 @@ def gen_rrules(pipelined=False):
             ops.append(custom_rule_names[rule_name])
         else:
             ops.append(rule_name)
-        peak_eq = importlib.import_module(f"lassen.rewrite_rules.{rule_name}")
+        peak_eq = importlib.import_module(f"lassen.{RULES_PKG}.{rule_name}")
         ir_fc = getattr(peak_eq, rule_name + "_fc")
         mapping_funcs.append(ir_fc)
 
@@ -119,13 +150,16 @@ else:
 
 pipelined = not ("PIPELINED" in os.environ and os.environ["PIPELINED"] == '0')
 
-rrules, ops = gen_rrules()
 app = os.path.basename(file_name).split(".json")[0]
 output_dir = os.path.dirname(file_name)
+# Headers for this compile go next to it (bin/), not into the shared libs/
+lassen_header = os.path.join(output_dir, "lassen_header.json")
+set_header_data_width(DATA_WIDTH, output_dir)
+rrules, ops = gen_rrules(lassen_header)
 
 c = CoreIRContext(reset=True)
 cutil.load_libs(["commonlib", "float_DW"])
-CoreIRNodes = gen_CoreIRNodes(16)
+CoreIRNodes = gen_CoreIRNodes(DATA_WIDTH)
 cutil.load_from_json(file_name)
 kernels = dict(c.global_namespace.modules)
 

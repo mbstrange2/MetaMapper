@@ -1,3 +1,4 @@
+from metamapper.data_width import data_width
 import peak
 from peak.assembler import Assembler
 from peak import Const
@@ -31,7 +32,7 @@ class FixConsts(Transformer):
             T = self.const_fields[node.field]
             if T is fam().PyFamily().Bit:
                 const_node = self.nodes.dag_nodes["corebit.const"]
-            elif T is fam().PyFamily().BitVector[16]:
+            elif T is fam().PyFamily().BitVector[data_width()]:
                 const_node = self.nodes.dag_nodes["coreir.const"]
             else:
                 raise ValueError(T)

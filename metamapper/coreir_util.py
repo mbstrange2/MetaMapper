@@ -1,3 +1,4 @@
+from metamapper.data_width import data_width
 import coreir
 from DagVisitor import Visitor, Transformer
 from collections import OrderedDict
@@ -308,7 +309,7 @@ class Loader:
                     return ht.Bit
                 elif vtype.kind is ht.BitVector:
                     #TODO HACK assuming 16 bit constants always
-                    return ht.BitVector[16]
+                    return ht.BitVector[data_width()]
                 else:
                     raise NotImplementedError()
 
@@ -407,7 +408,7 @@ dense_ready_valid = "DENSE_READY_VALID" in os.environ and os.environ.get("DENSE_
 if dense_ready_valid:
     @family_closure
     def rom_fc(family: AbstractFamily):
-        Data = family.BitVector[16]
+        Data = family.BitVector[data_width()]
         class rom(Peak):
             @name_outputs(rdata=Data)
             def __call__(self, raddr: Data) -> Data:
@@ -427,18 +428,18 @@ if dense_ready_valid:
             #Hack to get correct port name
             def select(self, field, original=None):
                 self._selects.add("rdata")
-                return Select(self, field="rdata",type=BitVector[16])
+                return Select(self, field="rdata",type=BitVector[data_width()])
 
             nodes = CoreIRNodes
             static_attributes = {}
             node_name = "memory.rom2"
             num_children = 1
-            type = Product.from_fields("Output",{"rdata":BitVector[16]})
+            type = Product.from_fields("Output",{"rdata":BitVector[data_width()]})
         return Rom
 else:
     @family_closure
     def rom_fc(family: AbstractFamily):
-        Data = family.BitVector[16]
+        Data = family.BitVector[data_width()]
         Bit = family.Bit
         class rom(Peak):
             @name_outputs(rdata=Data)
@@ -459,13 +460,13 @@ else:
             #Hack to get correct port name
             def select(self, field, original=None):
                 self._selects.add("rdata")
-                return Select(self, field="rdata",type=BitVector[16])
+                return Select(self, field="rdata",type=BitVector[data_width()])
 
             nodes = CoreIRNodes
             static_attributes = {}
             node_name = "memory.rom2"
             num_children = 2
-            type = Product.from_fields("Output",{"rdata":BitVector[16]})
+            type = Product.from_fields("Output",{"rdata":BitVector[data_width()]})
         return Rom
 
 
