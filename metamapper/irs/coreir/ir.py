@@ -9,6 +9,14 @@ from hwtypes import SMTFPVector, FPVector, RoundingMode
 import magma
 import os
 
+def mem_ports():
+    """In/out data ports of cgralib.Mem: env METAMAPPER_MEM_PORTS, 2 (default) or 3."""
+    n = int(os.environ.get("METAMAPPER_MEM_PORTS", 2))
+    if n not in (2, 3):
+        raise ValueError(f"METAMAPPER_MEM_PORTS={n}: cgralib.Mem has 2 or 3 in/out ports")
+    return n
+
+
 def gen_peak_CoreIR(width):
     DATAWIDTH = 16
     CoreIR = gen_custom_ops_peak_CoreIR(DATAWIDTH)
@@ -22,6 +30,20 @@ def gen_peak_CoreIR(width):
             def __call__(self, rst_n: Bit, clk_en: Bit, data_in_0: Data, chain_data_in_0: Data, data_in_1: Data, chain_data_in_1: Data, wen_in_0: Bit, ren_in_0: Bit, addr_in_0: Data, flush: Bit) -> (Data, Data, Bit):
                 return Data(0), Data(0), Bit(0)
         return mem
+
+    if mem_ports() == 3:
+        # MEM whose filter path (lake build_spec_rv: one more in/out port pair)
+        # is mapped as a third in/out, e.g. conv_3_3's newest line-buffer tap
+        # through the filter path (garnet mflowgen/common/application/hooks/).
+        @family_closure
+        def mem_fc(family: AbstractFamily):
+            Data = family.BitVector[width]
+            Bit = family.Bit
+            class mem(Peak):
+                @name_outputs(data_out_0=Data, data_out_1=Data, data_out_2=Data, stencil_valid=Bit)
+                def __call__(self, rst_n: Bit, clk_en: Bit, data_in_0: Data, chain_data_in_0: Data, data_in_1: Data, chain_data_in_1: Data, data_in_2: Data, chain_data_in_2: Data, wen_in_0: Bit, ren_in_0: Bit, addr_in_0: Data, flush: Bit) -> (Data, Data, Data, Bit):
+                    return Data(0), Data(0), Data(0), Bit(0)
+            return mem
 
     CoreIR.add_instruction("cgralib.Mem", mem_fc)
 

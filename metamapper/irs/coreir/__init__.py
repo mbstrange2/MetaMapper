@@ -1,4 +1,4 @@
-from .ir import gen_peak_CoreIR
+from .ir import gen_peak_CoreIR, mem_ports
 from ...node import Nodes, Constant, DagNode, Select, Dag, Input, Output
 from ... import CoreIRContext
 from ...peak_util import load_from_peak, peak_to_coreir
@@ -70,7 +70,7 @@ def gen_CoreIRNodes(width):
     if cgralib:
         name = f"cgralib.Mem"
         peak_fc = peak_ir.instructions[name]
-        cmod = c.get_namespace('cgralib').generators['Mem'](ctrl_width=16, has_chain_en=False, has_external_addrgen=False, has_flush=True, has_read_valid=False, has_reset=False, has_stencil_valid=True, has_valid=False, is_rom=True, num_inputs=2, num_outputs=2, use_prebuilt_mem=True, width=width)
+        cmod = c.get_namespace('cgralib').generators['Mem'](ctrl_width=16, has_chain_en=False, has_external_addrgen=False, has_flush=True, has_read_valid=False, has_reset=False, has_stencil_valid=True, has_valid=False, is_rom=True, num_inputs=mem_ports(), num_outputs=mem_ports(), use_prebuilt_mem=True, width=width)
         name_ = load_from_peak(CoreIRNodes, peak_fc, cmod=cmod, stateful=True, name="cgralib.Mem", modparams=())
 
         name = f"cgralib.Pond"
