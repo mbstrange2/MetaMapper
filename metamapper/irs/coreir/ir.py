@@ -17,6 +17,18 @@ def mem_ports():
     return n
 
 
+def mem_out_ports():
+    """Output data ports of cgralib.Mem: env METAMAPPER_MEM_OUT_PORTS, default mem_ports().
+    4 (with 2 inputs) is for lake specs with 4 output ports, where clockwork emits each
+    cgralib.Mem with num_inputs 2 and num_outputs 2 or 4 (outputs are matched by name,
+    so the 4-output node also serves the 2-output instances)."""
+    n = int(os.environ.get("METAMAPPER_MEM_OUT_PORTS", mem_ports()))
+    if (mem_ports(), n) not in ((2, 2), (3, 3), (2, 4)):
+        raise ValueError(f"METAMAPPER_MEM_PORTS={mem_ports()} with METAMAPPER_MEM_OUT_PORTS={n}: "
+                         "cgralib.Mem has 2 or 3 in/out ports, or 2 inputs and 4 outputs")
+    return n
+
+
 def gen_peak_CoreIR(width):
     DATAWIDTH = 16
     CoreIR = gen_custom_ops_peak_CoreIR(DATAWIDTH)
@@ -43,6 +55,20 @@ def gen_peak_CoreIR(width):
                 @name_outputs(data_out_0=Data, data_out_1=Data, data_out_2=Data, stencil_valid=Bit)
                 def __call__(self, rst_n: Bit, clk_en: Bit, data_in_0: Data, chain_data_in_0: Data, data_in_1: Data, chain_data_in_1: Data, data_in_2: Data, chain_data_in_2: Data, wen_in_0: Bit, ren_in_0: Bit, addr_in_0: Data, flush: Bit) -> (Data, Data, Data, Bit):
                     return Data(0), Data(0), Data(0), Bit(0)
+            return mem
+
+    if mem_out_ports() == 4:
+        # 2 in / 4 out (mem_out_ports): e.g. unsharp on the thesis DSE's 4x4 tiles drives
+        # data_out_2/3 of a MEM that clockwork emits with num_inputs 2, num_outputs 4.
+        @family_closure
+        def mem_fc(family: AbstractFamily):
+            Data = family.BitVector[width]
+            Bit = family.Bit
+
+            class mem(Peak):
+                @name_outputs(data_out_0=Data, data_out_1=Data, data_out_2=Data, data_out_3=Data, stencil_valid=Bit)
+                def __call__(self, rst_n: Bit, clk_en: Bit, data_in_0: Data, chain_data_in_0: Data, data_in_1: Data, chain_data_in_1: Data, wen_in_0: Bit, ren_in_0: Bit, addr_in_0: Data, flush: Bit) -> (Data, Data, Data, Data, Bit):
+                    return Data(0), Data(0), Data(0), Data(0), Bit(0)
             return mem
 
     CoreIR.add_instruction("cgralib.Mem", mem_fc)
